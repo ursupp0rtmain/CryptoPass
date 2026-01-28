@@ -94,6 +94,17 @@ class CryptoPassPopup {
 
     // Share
     document.getElementById('btn-send-share')?.addEventListener('click', () => this.sendShare());
+
+    // Event delegation for dynamically created generator buttons
+    document.addEventListener('click', (e) => {
+      const generatorBtn = e.target.closest('.cp-generator-btn');
+      if (generatorBtn) {
+        const fieldId = generatorBtn.dataset.field;
+        if (fieldId) {
+          this.openGeneratorForField(fieldId);
+        }
+      }
+    });
   }
 
   // Add Dropdown
@@ -935,7 +946,7 @@ class CryptoPassPopup {
         <label>${label}</label>
         <div class="cp-input-group">
           <input type="${type}" class="cp-input" id="edit-${id}" value="${this.escapeHtml(value)}">
-          ${hasGenerator ? `<button type="button" class="cp-btn cp-btn-sm" onclick="cryptoPass.openGeneratorForField('${id}')"><i class="pi pi-refresh"></i></button>` : ''}
+          ${hasGenerator ? `<button type="button" class="cp-btn cp-btn-sm cp-generator-btn" data-field="${id}"><i class="pi pi-refresh"></i></button>` : ''}
         </div>
       </div>
     `;
@@ -1136,21 +1147,25 @@ class CryptoPassPopup {
 
   // Sync
   async syncVault() {
+    const syncBtn = document.getElementById('btn-sync');
     try {
-      document.getElementById('footer-sync').textContent = 'Syncing...';
+      if (syncBtn) syncBtn.innerHTML = '<i class="pi pi-spin pi-spinner"></i> Syncing...';
       const response = await chrome.runtime.sendMessage({
         action: 'syncVault',
         vault: this.vault
       });
 
-      if (response.success) {
-        document.getElementById('footer-sync').textContent = 'Synced';
+      if (response?.success) {
+        if (syncBtn) syncBtn.innerHTML = '<i class="pi pi-check"></i> Synced';
+        setTimeout(() => {
+          if (syncBtn) syncBtn.innerHTML = '<i class="pi pi-sync"></i> Sync Now';
+        }, 2000);
       } else {
-        document.getElementById('footer-sync').textContent = 'Sync failed';
+        if (syncBtn) syncBtn.innerHTML = '<i class="pi pi-times"></i> Sync failed';
       }
     } catch (error) {
       console.error('Sync error:', error);
-      document.getElementById('footer-sync').textContent = 'Sync failed';
+      if (syncBtn) syncBtn.innerHTML = '<i class="pi pi-times"></i> Sync failed';
     }
   }
 
