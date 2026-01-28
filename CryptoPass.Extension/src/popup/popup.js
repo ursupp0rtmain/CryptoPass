@@ -9,6 +9,8 @@ class CryptoPassPopup {
     this.isEditing = false;
     this.currentDomain = '';
     this.notifications = [];
+    this.currentPassword = '';
+    this.passwordHistory = [];
 
     this.init();
   }
@@ -80,12 +82,15 @@ class CryptoPassPopup {
     // Generator
     document.getElementById('btn-copy-generated')?.addEventListener('click', () => this.copyGeneratedPassword());
     document.getElementById('btn-regenerate')?.addEventListener('click', () => this.generatePassword());
-    document.getElementById('password-length')?.addEventListener('input', (e) => this.updateLengthValue(e.target.value));
-    document.getElementById('btn-use-password')?.addEventListener('click', () => this.useGeneratedPassword());
+    document.getElementById('password-length')?.addEventListener('input', () => this.onLengthChange());
+    document.getElementById('btn-clear-history')?.addEventListener('click', () => this.clearPasswordHistory());
 
-    // Generator options
-    ['opt-uppercase', 'opt-lowercase', 'opt-numbers', 'opt-symbols'].forEach(id => {
+    // Generator options - all trigger regeneration
+    ['opt-uppercase', 'opt-lowercase', 'opt-numbers', 'opt-symbols', 'opt-avoid-ambiguous'].forEach(id => {
       document.getElementById(id)?.addEventListener('change', () => this.generatePassword());
+    });
+    ['min-numbers', 'min-special'].forEach(id => {
+      document.getElementById(id)?.addEventListener('input', () => this.generatePassword());
     });
 
     // Settings
@@ -1065,52 +1070,191 @@ class CryptoPassPopup {
 
   // Password Generator
   generatePassword() {
-    const length = parseInt(document.getElementById('password-length')?.value || '16');
+    const lengthInput = document.getElementById('password-length');
+    let length = parseInt(lengthInput?.value || '52');
+    
+    // Validate length
+    const validationMsg = document.getElementById('length-validation');
+    if (length < 20 || length > 128) {
+      if (validationMsg) validationMsg.style.display = 'block';
+      length = Math.max(20, Math.min(128, length));
+    } else {
+      if (validationMsg) validationMsg.style.display = 'none';
+    }
+
     const useUpper = document.getElementById('opt-uppercase')?.checked ?? true;
     const useLower = document.getElementById('opt-lowercase')?.checked ?? true;
     const useNumbers = document.getElementById('opt-numbers')?.checked ?? true;
     const useSymbols = document.getElementById('opt-symbols')?.checked ?? true;
+    const avoidAmbiguous = document.getElementById('opt-avoid-ambiguous')?.checked ?? false;
+    const minNumbers = parseInt(document.getElementById('min-numbers')?.value || '0');
+    const minSpecial = parseInt(document.getElementById('min-special')?.value || '0');
 
-    let chars = '';
-    if (useUpper) chars += 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-    if (useLower) chars += 'abcdefghijklmnopqrstuvwxyz';
-    if (useNumbers) chars += '0123456789';
-    if (useSymbols) chars += '!@#$%^&*()_+-=[]{}|;:,.<>?';
+    // Character sets
+    let upperChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    let lowerChars = 'abcdefghijklmnopqrstuvwxyz';
+    let numberChars = '0123456789';
+    let symbolChars = '!@#$%^&*()_+-=[]{}|;:,.<>?';
 
-    if (!chars) chars = 'abcdefghijklmnopqrstuvwxyz';
-
-    let password = '';
-    const array = new Uint32Array(length);
-    crypto.getRandomValues(array);
-
-    for (let i = 0; i < length; i++) {
-      password += chars[array[i] % chars.length];
+    // Remove ambiguous characters if option is checked
+    if (avoidAmbiguous) {
+      upperChars = upperChars.replace(/[O0IL1]/g, '');
+      lowerChars = lowerChars.replace(/[ol1]/g, '');
+      numberChars = numberChars.replace(/[01]/g, '');
     }
 
-    document.getElementById('generated-password').value = password;
+    let chars = '';
+    if (useUpper) chars += upperChars;
+    if (useLower) chars += lowerChars;
+    if (useNumbers) chars += numberChars;
+    if (useSymbols) chars += symbolChars;
+
+    if (!chars) chars = lowerChars;
+
+    // Build password with minimum requirements
+    let password = [];
+    const getRandomChar = (charSet) => {
+      const array = new Uint32Array(1);
+      crypto.getRandomValues(array);
+      return charSet[array[0] % charSet.length];
+    };
+
+    // Add minimum required numbers
+    if (useNumbers && minNumbers > 0) {
+      for (let i = 0; i < minNumbers && password.length < length; i++) {
+        password.push(getRandomChar(numberChars));
+      }
+    }
+
+    // Add minimum required special chars
+    if (useSymbols && minSpecial > 0) {
+      for (let i = 0; i < minSpecial && password.length < length; i++) {
+        password.push(getRandomChar(symbolChars));
+      }
+    }
+
+    // Fill remaining with random chars from all enabled sets
+    while (password.length < length) {
+      password.push(getRandomChar(chars));
+    }
+
+    // Shuffle the password array
+    for (let i = password.length - 1; i > 0; i--) {
+      const array = new Uint32Array(1);
+      crypto.getRandomValues(array);
+      const j = array[0] % (i + 1);
+      [password[i], password[j]] = [password[j], password[i]];
+    }
+
+    this.currentPassword = password.join('');
+    this.renderColoredPassword(this.currentPassword);
   }
 
-  updateLengthValue(value) {
-    document.getElementById('length-value').textContent = value;
+  renderColoredPassword(password) {
+    const display = document.getElementById('generated-password-display');
+    if (!display) return;
+
+    let html = '';
+    for (const char of password) {
+      let charClass = 'char-lower';
+      if (/[A-Z]/.test(char)) charClass = 'char-upper';
+      else if (/[0-9]/.test(char)) charClass = 'char-number';
+      else if (/[^a-zA-Z0-9]/.test(char)) charClass = 'char-symbol';
+      html += `<span class="${charClass}">${this.escapeHtml(char)}</span>`;
+    }
+    display.innerHTML = html;
+  }
+
+  onLengthChange() {
+    const lengthInput = document.getElementById('password-length');
+    const validationMsg = document.getElementById('length-validation');
+    const value = parseInt(lengthInput?.value || '52');
+    
+    if (value < 20 || value > 128) {
+      if (validationMsg) validationMsg.style.display = 'block';
+    } else {
+      if (validationMsg) validationMsg.style.display = 'none';
+    }
     this.generatePassword();
   }
 
   copyGeneratedPassword() {
-    const password = document.getElementById('generated-password')?.value;
-    if (password) {
-      this.copyToClipboard(password, 'Password');
+    if (this.currentPassword) {
+      this.copyToClipboard(this.currentPassword, 'Password');
+      this.addToHistory(this.currentPassword);
     }
   }
 
-  useGeneratedPassword() {
-    const password = document.getElementById('generated-password')?.value;
-    if (password) {
-      const passwordField = document.getElementById('edit-password');
-      if (passwordField) {
-        passwordField.value = password;
-      }
-      this.showView('edit');
+  addToHistory(password) {
+    // Don't add duplicates
+    if (this.passwordHistory.some(h => h.password === password)) return;
+
+    this.passwordHistory.unshift({
+      password,
+      timestamp: Date.now()
+    });
+
+    // Keep max 20 items
+    if (this.passwordHistory.length > 20) {
+      this.passwordHistory.pop();
     }
+
+    this.renderPasswordHistory();
+  }
+
+  renderPasswordHistory() {
+    const container = document.getElementById('password-history');
+    const emptyState = document.getElementById('history-empty');
+
+    if (!container) return;
+
+    if (this.passwordHistory.length === 0) {
+      container.style.display = 'none';
+      if (emptyState) emptyState.style.display = 'flex';
+      return;
+    }
+
+    container.style.display = 'flex';
+    if (emptyState) emptyState.style.display = 'none';
+
+    container.innerHTML = this.passwordHistory.map((item, index) => {
+      const timeAgo = this.formatTimeAgo(item.timestamp);
+      const truncated = item.password.length > 30 
+        ? item.password.substring(0, 30) + '...' 
+        : item.password;
+      return `
+        <div class="cp-history-item" data-index="${index}">
+          <span class="cp-history-password">${this.escapeHtml(truncated)}</span>
+          <span class="cp-history-time">${timeAgo}</span>
+          <button class="cp-history-copy" data-password="${this.escapeHtml(item.password)}" title="Copy">
+            <i class="pi pi-copy"></i>
+          </button>
+        </div>
+      `;
+    }).join('');
+
+    // Add click handlers for copy buttons
+    container.querySelectorAll('.cp-history-copy').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const password = btn.dataset.password;
+        this.copyToClipboard(password, 'Password');
+      });
+    });
+  }
+
+  formatTimeAgo(timestamp) {
+    const seconds = Math.floor((Date.now() - timestamp) / 1000);
+    if (seconds < 60) return 'now';
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}m`;
+    const hours = Math.floor(minutes / 60);
+    return `${hours}h`;
+  }
+
+  clearPasswordHistory() {
+    this.passwordHistory = [];
+    this.renderPasswordHistory();
   }
 
   openGeneratorForField(fieldId) {

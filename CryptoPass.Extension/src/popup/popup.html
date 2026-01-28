@@ -203,51 +203,92 @@
         <h1>Generator</h1>
       </header>
       <div class="cp-generator-content">
+        <!-- Password Display -->
         <div class="cp-generated-password">
-          <input type="text" id="generated-password" readonly value="Xk9#mP2$vL5@nQ8!">
+          <div class="cp-password-display" id="generated-password-display">
+            <!-- Colored password rendered here -->
+          </div>
           <div class="cp-generated-actions">
-            <button class="cp-icon-btn" id="btn-copy-generated" title="Copy">
-              <i class="pi pi-copy"></i>
-            </button>
             <button class="cp-icon-btn" id="btn-regenerate" title="Regenerate">
               <i class="pi pi-refresh"></i>
             </button>
+            <button class="cp-icon-btn" id="btn-copy-generated" title="Copy">
+              <i class="pi pi-copy"></i>
+            </button>
           </div>
         </div>
 
-        <div class="cp-generator-options">
-          <div class="cp-option-row">
-            <label>Length</label>
-            <div class="cp-range-group">
-              <input type="range" id="password-length" min="8" max="64" value="16">
-              <span id="length-value">16</span>
+        <!-- Options Section -->
+        <div class="cp-generator-section">
+          <h4 class="cp-section-title">Options</h4>
+          <div class="cp-generator-card">
+            <div class="cp-form-group">
+              <label>Length</label>
+              <input type="number" id="password-length" class="cp-input cp-input-sm" min="20" max="128" value="52">
+              <span class="cp-validation-msg" id="length-validation">Value must be between 20 and 128.</span>
             </div>
           </div>
+        </div>
 
-          <div class="cp-option-row">
-            <label>Uppercase (A-Z)</label>
-            <input type="checkbox" id="opt-uppercase" class="cp-toggle" checked>
-          </div>
+        <!-- Include Section -->
+        <div class="cp-generator-section">
+          <h4 class="cp-section-title">Include</h4>
+          <div class="cp-generator-card">
+            <div class="cp-checkbox-grid">
+              <label class="cp-checkbox-item">
+                <input type="checkbox" id="opt-uppercase" checked>
+                <span>A-Z</span>
+              </label>
+              <label class="cp-checkbox-item">
+                <input type="checkbox" id="opt-lowercase" checked>
+                <span>a-z</span>
+              </label>
+              <label class="cp-checkbox-item">
+                <input type="checkbox" id="opt-numbers" checked>
+                <span>0-9</span>
+              </label>
+              <label class="cp-checkbox-item">
+                <input type="checkbox" id="opt-symbols" checked>
+                <span>!@#$%^&*</span>
+              </label>
+            </div>
+            
+            <div class="cp-min-inputs">
+              <div class="cp-form-group cp-form-group-inline">
+                <label>Minimum numbers</label>
+                <input type="number" id="min-numbers" class="cp-input cp-input-sm" min="0" max="20" value="9">
+              </div>
+              <div class="cp-form-group cp-form-group-inline">
+                <label>Minimum special</label>
+                <input type="number" id="min-special" class="cp-input cp-input-sm" min="0" max="20" value="9">
+              </div>
+            </div>
 
-          <div class="cp-option-row">
-            <label>Lowercase (a-z)</label>
-            <input type="checkbox" id="opt-lowercase" class="cp-toggle" checked>
-          </div>
-
-          <div class="cp-option-row">
-            <label>Numbers (0-9)</label>
-            <input type="checkbox" id="opt-numbers" class="cp-toggle" checked>
-          </div>
-
-          <div class="cp-option-row">
-            <label>Symbols (!@#$%)</label>
-            <input type="checkbox" id="opt-symbols" class="cp-toggle" checked>
+            <label class="cp-checkbox-item cp-checkbox-full">
+              <input type="checkbox" id="opt-avoid-ambiguous">
+              <span>Avoid ambiguous characters</span>
+            </label>
           </div>
         </div>
 
-        <button class="cp-btn cp-btn-primary cp-btn-block" id="btn-use-password">
-          <i class="pi pi-check"></i> Fill Password
-        </button>
+        <!-- History Section -->
+        <div class="cp-generator-section">
+          <div class="cp-section-header-row">
+            <h4 class="cp-section-title">History</h4>
+            <button class="cp-btn-text cp-btn-sm" id="btn-clear-history">
+              <i class="pi pi-trash"></i> Clear
+            </button>
+          </div>
+          <div class="cp-generator-card cp-history-card">
+            <div id="password-history" class="cp-history-list">
+              <!-- History items rendered here -->
+            </div>
+            <div id="history-empty" class="cp-history-empty">
+              <i class="pi pi-history"></i>
+              <span>No history yet</span>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Bottom Navigation -->
