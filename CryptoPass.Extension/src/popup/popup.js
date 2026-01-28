@@ -96,6 +96,7 @@ class CryptoPassPopup {
     // Settings
     document.getElementById('btn-sync')?.addEventListener('click', () => this.syncVault());
     document.getElementById('btn-logout')?.addEventListener('click', () => this.logout());
+    document.getElementById('auto-lock')?.addEventListener('change', (e) => this.saveAutoLockSetting(e.target.value));
 
     // Share
     document.getElementById('btn-send-share')?.addEventListener('click', () => this.sendShare());
@@ -264,9 +265,27 @@ class CryptoPassPopup {
       this.updateFooter();
       this.renderVaultItems();
       this.update2FABadge();
+      await this.loadAutoLockSetting();
     } else {
       this.showView('login');
     }
+  }
+
+  async loadAutoLockSetting() {
+    if (!this.walletAddress) return;
+    const key = `autoLock_${this.walletAddress}`;
+    const data = await chrome.storage.local.get([key]);
+    const autoLockValue = data[key] ?? '5'; // Default to 5 min
+    const select = document.getElementById('auto-lock');
+    if (select) {
+      select.value = autoLockValue;
+    }
+  }
+
+  async saveAutoLockSetting(value) {
+    if (!this.walletAddress) return;
+    const key = `autoLock_${this.walletAddress}`;
+    await chrome.storage.local.set({ [key]: value });
   }
 
   async getCurrentTab() {
