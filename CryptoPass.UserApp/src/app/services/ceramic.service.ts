@@ -84,7 +84,7 @@ export class CeramicService {
 
   /**
    * Authenticate user with MetaMask and create DID for Ceramic
-   * Uses did:key derived from wallet signature for Ceramic operations
+   * Uses a single signature for both DID creation and encryption key derivation
    * Returns the signature for encryption key derivation
    */
   async authenticate(ethereumProvider: any): Promise<string> {
@@ -104,19 +104,26 @@ export class CeramicService {
 
       const walletAddress = accounts[0];
 
-      // Sign a message to derive a deterministic seed for did:key
-      // This ensures the same wallet always gets the same DID
-      const seedMessage = `CryptoPass DID Seed\n\nThis signature is used to create your decentralized identity for Ceramic.\nWallet: ${walletAddress}`;
+      // Use the original signature message format for DID generation to maintain compatibility
+      const didSeedMessage = `CryptoPass DID Seed\n\nThis signature is used to create your decentralized identity for Ceramic.\nWallet: ${walletAddress}`;
 
-      const seedSignature = await ethereumProvider.request({
+      const didSeedSignature = await ethereumProvider.request({
         method: 'personal_sign',
-        params: [seedMessage, walletAddress],
+        params: [didSeedMessage, walletAddress],
       });
 
-      // Derive a 32-byte seed from the signature
+      // Use the original encryption signature message for backward compatibility
+      const encryptionMessage = `Sign this message to authenticate with CryptoPass and derive your encryption key.\n\nNOTE: This signature is used to encrypt/decrypt your passwords. Always use the same wallet address to access your data.\n\nWallet: ${walletAddress}`;
+
+      const encryptionSignature = await ethereumProvider.request({
+        method: 'personal_sign',
+        params: [encryptionMessage, walletAddress],
+      });
+
+      // Derive DID seed from the DID-specific signature to ensure same DID
       const encoder = new TextEncoder();
-      const signatureBytes = encoder.encode(seedSignature);
-      const hashBuffer = await crypto.subtle.digest('SHA-256', signatureBytes);
+      const didSignatureBytes = encoder.encode(didSeedSignature);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', didSignatureBytes);
       const seed = new Uint8Array(hashBuffer);
 
       // Create did:key from the seed
@@ -136,16 +143,8 @@ export class CeramicService {
         expiresAt: null, // did:key doesn't expire
       });
 
-      // Sign authentication message for encryption key derivation
-      // This is the same message format used before for compatibility
-      const signatureMessage = `Sign this message to authenticate with CryptoPass and derive your encryption key.\n\nNOTE: This signature is used to encrypt/decrypt your passwords. Always use the same wallet address to access your data.\n\nWallet: ${walletAddress}`;
-
-      const signature = await ethereumProvider.request({
-        method: 'personal_sign',
-        params: [signatureMessage, walletAddress],
-      });
-
-      return signature;
+      // Return the encryption signature for key derivation
+      return encryptionSignature;
     } catch (error: any) {
       // Clear any partial session on error
       this.currentDID = null;
@@ -163,6 +162,13 @@ export class CeramicService {
    */
   isSessionValid(): boolean {
     return this.currentDID !== null && this.currentDID.authenticated;
+  }
+
+  /**
+   * Get the current DID string
+   */
+  getCurrentDID(): string | null {
+    return this.currentDID?.id || null;
   }
 
   /**
@@ -318,33 +324,39 @@ export class CeramicService {
       throw new Error('Not authenticated');
     }
 
-    // In Ceramic, we can't truly delete, but we can update to a tombstone state
-    // Or use a "deleted" flag
-    const mutation = `
-      mutation UpdateVaultEntry($input: UpdateVaultEntryInput!) {
-        updateVaultEntry(input: $input) {
-          document {
-            id
+    // Mark as deleted by setting encrypted data to empty
+    // This is safer than complex mutations that might cause 500 errors
+    try {
+      const mutation = `
+        mutation UpdateVaultEntry($input: UpdateVaultEntryInput!) {
+          updateVaultEntry(input: $input) {
+            document {
+              id
+              serviceName
+            }
           }
         }
-      }
-    `;
+      `;
 
-    // Set encrypted data to empty to effectively "delete" the entry
-    const result = await this.compose.executeQuery(mutation, {
-      input: {
-        id: streamId,
-        content: {
-          encryptedData: '',
-          iv: '',
-          serviceName: '[DELETED]',
-          updatedAt: new Date().toISOString(),
+      const result = await this.compose.executeQuery(mutation, {
+        input: {
+          id: streamId,
+          content: {
+            encryptedData: 'DELETED_ENTRY',  // Schema requires non-empty string
+            iv: 'DELETED_IV',               // Schema requires non-empty string
+            serviceName: '[DELETED]',
+            updatedAt: new Date().toISOString(),
+          },
         },
-      },
-    });
+      });
 
-    if (result.errors) {
-      throw new Error('Failed to delete vault entry');
+      if (result.errors) {
+        console.error('Ceramic delete errors:', result.errors);
+        throw new Error(`Failed to delete vault entry: ${result.errors.map(e => e.message).join(', ')}`);
+      }
+    } catch (error: any) {
+      console.error('Ceramic delete error:', error);
+      throw error;
     }
   }
 

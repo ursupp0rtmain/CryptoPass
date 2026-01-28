@@ -51,7 +51,7 @@ export class ShareService {
 
       // 3. Send micro-payment as spam protection (skip in development if disabled)
       let txHash = 'dev-mode-no-payment';
-      if (environment.enablePayments) {
+      if (environment.enablePayments === true) {
         txHash = await this.sendPayment(recipientWalletAddress, this.SHARE_FEE_ETH);
       } else {
         console.log('⚠️ Development mode: Payment skipped');
@@ -92,7 +92,7 @@ export class ShareService {
 
       // 7. Create notification for recipient (if same user for testing)
       const recipientIsSameUser = senderAddress.toLowerCase() === recipientWalletAddress.toLowerCase();
-      if (recipientIsSameUser || !environment.enablePayments) {
+      if (recipientIsSameUser || environment.enablePayments !== true) {
         // In local testing, create the receive notification immediately
         this.notificationService.addNotification({
           type: 'share_request',

@@ -1,0 +1,61 @@
+<div class="login-container">
+  <div class="login-card card glass">
+    <div class="login-header">
+      <h1 class="display-font">CryptoPass</h1>
+      <p class="subtitle">Browser Extension Login</p>
+    </div>
+
+    <div class="login-content">
+      @if (!isLoggedIn()) {
+        <div class="connect-section">
+          <i class="pi pi-wallet wallet-icon"></i>
+
+          @if (errorMessage()) {
+            <div class="error-message">
+              <i class="pi pi-times-circle"></i>
+              <p>{{ errorMessage() }}</p>
+            </div>
+          }
+
+          <button
+            class="btn btn-primary"
+            (click)="connectWallet()"
+            [disabled]="isConnecting()"
+          >
+            @if (isConnecting()) {
+              <i class="pi pi-spin pi-spinner"></i>
+              <span>{{ connectionStep() || 'Connecting...' }}</span>
+            } @else {
+              <i class="pi pi-sign-in"></i>
+              <span>Connect Wallet</span>
+            }
+          </button>
+
+          <div class="info-text">
+            <p>Connect your wallet to sync with the browser extension.</p>
+            <p class="small">Your passwords are encrypted locally and stored on IPFS.</p>
+          </div>
+        </div>
+      } @else {
+        <div class="success-section">
+          <div class="success-icon">
+            <i class="pi pi-check-circle"></i>
+          </div>
+          <h2>Successfully Connected!</h2>
+          <p class="wallet-info">
+            Wallet: {{ walletState().address?.slice(0, 6) }}...{{ walletState().address?.slice(-4) }}
+          </p>
+          <p class="hint">You can now close this page and use the extension.</p>
+          <button class="btn btn-secondary" (click)="closeTab()">
+            <i class="pi pi-times"></i>
+            <span>Close Page</span>
+          </button>
+        </div>
+      }
+    </div>
+
+    <div class="login-footer">
+      <p class="small">Zero-Knowledge • Decentralized • Secure</p>
+    </div>
+  </div>
+</div>

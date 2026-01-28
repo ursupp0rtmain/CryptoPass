@@ -42,7 +42,7 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": ["icons/*"],
+      "resources": ["icons/*", "src/login/*"],
       "matches": ["<all_urls>"]
     }
   ]

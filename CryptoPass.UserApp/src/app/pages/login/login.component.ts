@@ -44,9 +44,12 @@ export class LoginComponent {
 
       // Step 3: Derive encryption key from signature
       this.connectionStep.set('Deriving encryption key...');
-      await this.encryptionService.deriveMasterKey(signature);
+      const masterKey = await this.encryptionService.deriveMasterKey(signature);
 
-      // Step 4: Navigate to vault
+      // Step 4: Notify browser extension (if installed)
+      this.notifyExtension(masterKey);
+
+      // Step 5: Navigate to vault
       this.connectionStep.set('Loading vault...');
       await this.router.navigate(['/vault']);
     } catch (error: any) {
@@ -64,5 +67,20 @@ export class LoginComponent {
 
   get isAuthenticated(): boolean {
     return this.ceramicService.isAuthenticated();
+  }
+
+  /**
+   * Notify the CryptoPass browser extension about successful login
+   */
+  private notifyExtension(masterKey: string): void {
+    const walletAddress = this.walletState().address;
+    const ceramicDid = this.ceramicService.getCurrentDID();
+
+    window.postMessage({
+      type: 'CRYPTOPASS_LOGIN',
+      walletAddress,
+      masterKey,
+      ceramicDid
+    }, '*');
   }
 }

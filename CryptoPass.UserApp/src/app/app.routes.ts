@@ -17,6 +17,11 @@ export const routes: Routes = [
       import('./pages/vault/vault.component').then((m) => m.VaultComponent),
   },
   {
+    path: 'extension-login',
+    loadComponent: () =>
+      import('./pages/extension-login/extension-login.component').then((m) => m.ExtensionLoginComponent),
+  },
+  {
     path: '**',
     redirectTo: '/login',
   },

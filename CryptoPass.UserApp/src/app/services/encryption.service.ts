@@ -15,7 +15,10 @@ export interface CeramicEncryptedEntry extends EncryptedPassword {
 export class EncryptionService {
   private masterKey: CryptoKey | null = null;
 
-  async deriveMasterKey(signature: string): Promise<void> {
+  private currentSignature: string | null = null;
+
+  async deriveMasterKey(signature: string): Promise<string> {
+    this.currentSignature = signature;
     const encoder = new TextEncoder();
     const signatureData = encoder.encode(signature);
 
@@ -39,6 +42,9 @@ export class EncryptionService {
       false,
       ['encrypt', 'decrypt']
     );
+
+    // Return signature for extension sync (extension will derive its own key)
+    return signature;
   }
 
   async encrypt(data: string): Promise<{ encryptedData: string; iv: string }> {
@@ -178,7 +184,9 @@ export class EncryptionService {
    */
   async decryptFromCeramic(entry: CeramicEncryptedEntry): Promise<VaultItem> {
     // Skip deleted entries
-    if (!entry.encryptedData || entry.serviceName === '[DELETED]') {
+    if (!entry.encryptedData || 
+        entry.serviceName === '[DELETED]' || 
+        entry.encryptedData === 'DELETED_ENTRY') {
       throw new Error('Entry has been deleted');
     }
 

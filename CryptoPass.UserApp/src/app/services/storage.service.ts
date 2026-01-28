@@ -47,7 +47,9 @@ export class StorageService {
 
       // Filter out deleted entries
       const validEntries = entries.filter(
-        (e) => e.encryptedData && (e as any).serviceName !== '[DELETED]'
+        (e) => e.encryptedData && 
+               (e as any).serviceName !== '[DELETED]' && 
+               e.encryptedData !== 'DELETED_ENTRY'
       );
 
       const ceramicVault: Vault = {

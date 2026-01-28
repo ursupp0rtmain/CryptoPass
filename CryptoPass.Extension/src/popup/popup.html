@@ -9,106 +9,154 @@
 </head>
 <body>
   <div id="app" class="cp-extension">
-    <!-- Header -->
-    <header class="cp-header">
-      <div class="cp-header-left">
-        <span class="cp-logo">CryptoPass</span>
-      </div>
-      <div class="cp-header-right">
-        <button class="cp-header-btn" id="btn-add" title="Add item">
-          <i class="pi pi-plus"></i>
-        </button>
-        <button class="cp-header-btn" id="btn-generator" title="Password generator">
-          <i class="pi pi-refresh"></i>
-        </button>
-        <button class="cp-header-btn" id="btn-settings" title="Settings">
-          <i class="pi pi-cog"></i>
-        </button>
-      </div>
-    </header>
-
     <!-- Login View -->
     <div id="view-login" class="cp-view">
       <div class="cp-login-content">
-        <div class="cp-login-logo">
-          <i class="pi pi-lock"></i>
+        <div class="cp-login-header">
+          <h1 class="cp-display-font">CryptoPass</h1>
+          <p class="cp-subtitle">Decentralized Password Manager</p>
         </div>
-        <h2>Welcome to CryptoPass</h2>
-        <p>Connect your wallet to access your encrypted vault</p>
-        <button class="cp-btn cp-btn-primary cp-btn-block" id="btn-connect">
-          <i class="pi pi-wallet"></i>
-          <span>Connect Wallet</span>
-        </button>
-        <div class="cp-login-info">
-          <i class="pi pi-shield"></i>
-          <span>Your passwords are encrypted with your wallet signature</span>
+
+        <div class="cp-login-body">
+          <i class="pi pi-wallet cp-wallet-icon"></i>
+
+          <div id="login-error" class="cp-error-message" style="display: none;">
+            <i class="pi pi-times-circle"></i>
+            <p id="login-error-text"></p>
+          </div>
+
+          <button class="cp-btn cp-btn-gradient" id="btn-connect">
+            <i class="pi pi-sign-in"></i>
+            <span>Connect Wallet</span>
+          </button>
+
+          <div class="cp-info-text">
+            <p>Connect your wallet to access your encrypted password vault.</p>
+            <p class="cp-small">Your passwords are encrypted locally and stored on IPFS.</p>
+          </div>
+        </div>
+
+        <div class="cp-login-footer">
+          <p class="cp-small">Zero-Knowledge • Decentralized • Secure</p>
         </div>
       </div>
     </div>
 
     <!-- Vault View -->
     <div id="view-vault" class="cp-view" style="display: none;">
-      <!-- Tab Bar -->
-      <div class="cp-tabs">
-        <button class="cp-tab active" data-tab="tab-current">
-          <i class="pi pi-globe"></i>
-          <span>Current Tab</span>
-        </button>
-        <button class="cp-tab" data-tab="tab-vault">
-          <i class="pi pi-lock"></i>
-          <span>My Vault</span>
-        </button>
-      </div>
+      <!-- Header -->
+      <header class="cp-header">
+        <h1>Vault</h1>
+        <div class="cp-header-right">
+          <div class="cp-add-wrapper">
+            <button class="cp-btn cp-btn-accent" id="btn-add">
+              <i class="pi pi-plus"></i>
+              <span>New</span>
+            </button>
+            <div class="cp-add-dropdown" id="add-dropdown" style="display: none;">
+              <div class="cp-dropdown-header">New Item</div>
+              <div class="cp-dropdown-list">
+                <div class="cp-dropdown-item" data-type="login">
+                  <div class="cp-dropdown-icon"><i class="pi pi-key"></i></div>
+                  <span>Login</span>
+                </div>
+                <div class="cp-dropdown-item" data-type="card">
+                  <div class="cp-dropdown-icon"><i class="pi pi-credit-card"></i></div>
+                  <span>Card</span>
+                </div>
+                <div class="cp-dropdown-item" data-type="note">
+                  <div class="cp-dropdown-icon"><i class="pi pi-file"></i></div>
+                  <span>Secure Note</span>
+                </div>
+                <div class="cp-dropdown-item" data-type="identity">
+                  <div class="cp-dropdown-icon"><i class="pi pi-user"></i></div>
+                  <span>Identity</span>
+                </div>
+              </div>
+            </div>
+            <div class="cp-dropdown-backdrop" id="add-dropdown-backdrop" style="display: none;"></div>
+          </div>
+          <button class="cp-btn cp-btn-icon" id="btn-notifications" title="Notifications">
+            <i class="pi pi-bell"></i>
+            <span class="cp-notification-badge" id="notification-count" style="display: none;">0</span>
+          </button>
+          <button class="cp-avatar" id="btn-profile" title="Account">
+            <span id="avatar-initials">CP</span>
+          </button>
+        </div>
+      </header>
 
       <!-- Search -->
-      <div class="cp-search">
-        <i class="pi pi-search"></i>
-        <input type="text" id="search-input" placeholder="Search vault...">
-      </div>
-
-      <!-- Current Tab Content -->
-      <div id="tab-current" class="cp-tab-content active">
-        <div class="cp-section-header">
-          <span id="current-domain">No matching logins</span>
-        </div>
-        <div id="current-items" class="cp-items-list">
-          <div class="cp-empty-state">
-            <i class="pi pi-inbox"></i>
-            <p>No logins for this website</p>
-            <button class="cp-btn cp-btn-sm" id="btn-add-current">
-              <i class="pi pi-plus"></i> Add Login
-            </button>
-          </div>
+      <div class="cp-search-container">
+        <div class="cp-search">
+          <i class="pi pi-search"></i>
+          <input type="text" id="search-input" placeholder="Search">
         </div>
       </div>
 
-      <!-- Vault Tab Content -->
-      <div id="tab-vault" class="cp-tab-content">
-        <!-- Type Filter -->
-        <div class="cp-filter-bar">
-          <select id="type-filter" class="cp-select">
-            <option value="all">All Items</option>
+      <!-- 2FA Codes + Type Filter Row -->
+      <div class="cp-filters" id="filters-row">
+        <button class="cp-2fa-btn" id="btn-2fa">
+          <i class="pi pi-stopwatch"></i>
+          <span>2FA Codes</span>
+          <span class="cp-2fa-badge" id="2fa-count" style="display: none;">0</span>
+        </button>
+        <div class="cp-filter-select">
+          <i class="pi pi-list"></i>
+          <select id="type-filter">
+            <option value="all">Type</option>
             <option value="login">Logins</option>
             <option value="card">Cards</option>
-            <option value="note">Secure Notes</option>
-            <option value="address">Addresses</option>
+            <option value="note">Notes</option>
+            <option value="identity">Identities</option>
           </select>
-        </div>
-
-        <div id="vault-items" class="cp-items-list">
-          <!-- Items will be rendered here -->
+          <i class="pi pi-chevron-down"></i>
         </div>
       </div>
+
+      <!-- Main Content -->
+      <div class="cp-content">
+        <!-- All Items -->
+        <section class="cp-section" id="section-all">
+          <div class="cp-section-header">
+            <span>All items</span>
+            <span class="cp-section-count" id="vault-count">0</span>
+          </div>
+          <div id="vault-items" class="cp-items-list">
+            <!-- All items rendered here -->
+          </div>
+        </section>
+      </div>
+
+      <!-- Bottom Navigation -->
+      <nav class="cp-bottom-nav">
+        <button class="cp-nav-item active" data-view="vault">
+          <i class="pi pi-th-large"></i>
+          <span>Vault</span>
+        </button>
+        <button class="cp-nav-item" data-view="generator">
+          <i class="pi pi-key"></i>
+          <span>Generator</span>
+        </button>
+        <button class="cp-nav-item" data-view="share">
+          <i class="pi pi-share-alt"></i>
+          <span>Share</span>
+        </button>
+        <button class="cp-nav-item" data-view="settings">
+          <i class="pi pi-cog"></i>
+          <span>Settings</span>
+        </button>
+      </nav>
     </div>
 
     <!-- Item Detail View -->
     <div id="view-detail" class="cp-view" style="display: none;">
-      <div class="cp-detail-header">
+      <header class="cp-header cp-header-back">
         <button class="cp-back-btn" id="btn-back">
           <i class="pi pi-arrow-left"></i>
         </button>
-        <h3 id="detail-title">Item Details</h3>
-        <div class="cp-detail-actions">
+        <h1 id="detail-title">Item</h1>
+        <div class="cp-header-right">
           <button class="cp-icon-btn" id="btn-edit" title="Edit">
             <i class="pi pi-pencil"></i>
           </button>
@@ -116,161 +164,292 @@
             <i class="pi pi-trash"></i>
           </button>
         </div>
-      </div>
+      </header>
       <div id="detail-content" class="cp-detail-content">
-        <!-- Detail fields will be rendered here -->
+        <!-- Detail fields rendered here -->
       </div>
     </div>
 
     <!-- Add/Edit View -->
     <div id="view-edit" class="cp-view" style="display: none;">
-      <div class="cp-detail-header">
+      <header class="cp-header cp-header-back">
         <button class="cp-back-btn" id="btn-cancel-edit">
           <i class="pi pi-arrow-left"></i>
         </button>
-        <h3 id="edit-title">Add Item</h3>
-        <button class="cp-btn cp-btn-primary cp-btn-sm" id="btn-save">
-          <i class="pi pi-check"></i> Save
+        <h1 id="edit-title">New Item</h1>
+        <button class="cp-btn cp-btn-accent cp-btn-sm" id="btn-save">
+          Save
         </button>
-      </div>
+      </header>
       <div class="cp-edit-content">
         <div class="cp-form-group">
-          <label>Item Type</label>
+          <label>Type</label>
           <select id="edit-type" class="cp-select">
             <option value="login">Login</option>
             <option value="card">Card</option>
             <option value="note">Secure Note</option>
-            <option value="address">Address</option>
+            <option value="identity">Identity</option>
           </select>
         </div>
-
         <div id="edit-fields">
-          <!-- Dynamic fields based on type -->
+          <!-- Dynamic fields -->
         </div>
       </div>
     </div>
 
     <!-- Generator View -->
     <div id="view-generator" class="cp-view" style="display: none;">
-      <div class="cp-detail-header">
-        <button class="cp-back-btn" id="btn-back-generator">
-          <i class="pi pi-arrow-left"></i>
-        </button>
-        <h3>Password Generator</h3>
-      </div>
+      <header class="cp-header">
+        <h1>Generator</h1>
+      </header>
       <div class="cp-generator-content">
         <div class="cp-generated-password">
-          <input type="text" id="generated-password" readonly>
-          <button class="cp-icon-btn" id="btn-copy-generated" title="Copy">
-            <i class="pi pi-copy"></i>
-          </button>
-          <button class="cp-icon-btn" id="btn-regenerate" title="Regenerate">
-            <i class="pi pi-refresh"></i>
-          </button>
+          <input type="text" id="generated-password" readonly value="Xk9#mP2$vL5@nQ8!">
+          <div class="cp-generated-actions">
+            <button class="cp-icon-btn" id="btn-copy-generated" title="Copy">
+              <i class="pi pi-copy"></i>
+            </button>
+            <button class="cp-icon-btn" id="btn-regenerate" title="Regenerate">
+              <i class="pi pi-refresh"></i>
+            </button>
+          </div>
         </div>
 
         <div class="cp-generator-options">
           <div class="cp-option-row">
-            <label>Length: <span id="length-value">16</span></label>
-            <input type="range" id="password-length" min="8" max="64" value="16">
+            <label>Length</label>
+            <div class="cp-range-group">
+              <input type="range" id="password-length" min="8" max="64" value="16">
+              <span id="length-value">16</span>
+            </div>
           </div>
 
           <div class="cp-option-row">
-            <label>
-              <input type="checkbox" id="opt-uppercase" checked>
-              A-Z (Uppercase)
-            </label>
+            <label>Uppercase (A-Z)</label>
+            <input type="checkbox" id="opt-uppercase" class="cp-toggle" checked>
           </div>
 
           <div class="cp-option-row">
-            <label>
-              <input type="checkbox" id="opt-lowercase" checked>
-              a-z (Lowercase)
-            </label>
+            <label>Lowercase (a-z)</label>
+            <input type="checkbox" id="opt-lowercase" class="cp-toggle" checked>
           </div>
 
           <div class="cp-option-row">
-            <label>
-              <input type="checkbox" id="opt-numbers" checked>
-              0-9 (Numbers)
-            </label>
+            <label>Numbers (0-9)</label>
+            <input type="checkbox" id="opt-numbers" class="cp-toggle" checked>
           </div>
 
           <div class="cp-option-row">
-            <label>
-              <input type="checkbox" id="opt-symbols" checked>
-              !@#$%^&* (Symbols)
-            </label>
+            <label>Symbols (!@#$%)</label>
+            <input type="checkbox" id="opt-symbols" class="cp-toggle" checked>
           </div>
         </div>
 
         <button class="cp-btn cp-btn-primary cp-btn-block" id="btn-use-password">
-          <i class="pi pi-check"></i> Use Password
+          <i class="pi pi-check"></i> Fill Password
         </button>
       </div>
+
+      <!-- Bottom Navigation -->
+      <nav class="cp-bottom-nav">
+        <button class="cp-nav-item" data-view="vault">
+          <i class="pi pi-th-large"></i>
+          <span>Vault</span>
+        </button>
+        <button class="cp-nav-item active" data-view="generator">
+          <i class="pi pi-key"></i>
+          <span>Generator</span>
+        </button>
+        <button class="cp-nav-item" data-view="share">
+          <i class="pi pi-share-alt"></i>
+          <span>Share</span>
+        </button>
+        <button class="cp-nav-item" data-view="settings">
+          <i class="pi pi-cog"></i>
+          <span>Settings</span>
+        </button>
+      </nav>
     </div>
 
     <!-- Settings View -->
     <div id="view-settings" class="cp-view" style="display: none;">
-      <div class="cp-detail-header">
-        <button class="cp-back-btn" id="btn-back-settings">
-          <i class="pi pi-arrow-left"></i>
-        </button>
-        <h3>Settings</h3>
-      </div>
+      <header class="cp-header">
+        <h1>Settings</h1>
+      </header>
       <div class="cp-settings-content">
-        <div class="cp-settings-section">
+        <section class="cp-settings-section">
           <h4>Account</h4>
-          <div class="cp-settings-item">
-            <div class="cp-settings-label">
-              <i class="pi pi-wallet"></i>
-              <span>Connected Wallet</span>
+          <div class="cp-settings-card">
+            <div class="cp-settings-item">
+              <div class="cp-settings-label">
+                <i class="pi pi-wallet"></i>
+                <span>Wallet</span>
+              </div>
+              <span id="connected-wallet" class="cp-settings-value">Not connected</span>
             </div>
-            <span id="connected-wallet" class="cp-settings-value">Not connected</span>
+            <div class="cp-settings-item">
+              <div class="cp-settings-label">
+                <i class="pi pi-database"></i>
+                <span>Items</span>
+              </div>
+              <span id="settings-vault-count" class="cp-settings-value">0</span>
+            </div>
           </div>
           <button class="cp-btn cp-btn-block" id="btn-sync">
-            <i class="pi pi-sync"></i> Sync Vault
+            <i class="pi pi-sync"></i> Sync Now
           </button>
           <button class="cp-btn cp-btn-danger cp-btn-block" id="btn-logout">
-            <i class="pi pi-sign-out"></i> Lock & Logout
+            <i class="pi pi-sign-out"></i> Lock & Disconnect
           </button>
-        </div>
+        </section>
 
-        <div class="cp-settings-section">
+        <section class="cp-settings-section">
           <h4>Security</h4>
-          <div class="cp-settings-item">
-            <div class="cp-settings-label">
-              <i class="pi pi-clock"></i>
-              <span>Auto-lock timeout</span>
+          <div class="cp-settings-card">
+            <div class="cp-settings-item">
+              <div class="cp-settings-label">
+                <i class="pi pi-clock"></i>
+                <span>Auto-lock</span>
+              </div>
+              <select id="auto-lock" class="cp-select cp-select-sm">
+                <option value="1">1 min</option>
+                <option value="5" selected>5 min</option>
+                <option value="15">15 min</option>
+                <option value="30">30 min</option>
+                <option value="0">Never</option>
+              </select>
             </div>
-            <select id="auto-lock" class="cp-select cp-select-sm">
-              <option value="1">1 minute</option>
-              <option value="5" selected>5 minutes</option>
-              <option value="15">15 minutes</option>
-              <option value="30">30 minutes</option>
-              <option value="0">Never</option>
-            </select>
+          </div>
+        </section>
+
+        <section class="cp-settings-section">
+          <h4>About</h4>
+          <div class="cp-settings-card">
+            <div class="cp-settings-item">
+              <span class="cp-settings-label">Version</span>
+              <span class="cp-settings-value">1.0.0</span>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- Bottom Navigation -->
+      <nav class="cp-bottom-nav">
+        <button class="cp-nav-item" data-view="vault">
+          <i class="pi pi-th-large"></i>
+          <span>Vault</span>
+        </button>
+        <button class="cp-nav-item" data-view="generator">
+          <i class="pi pi-key"></i>
+          <span>Generator</span>
+        </button>
+        <button class="cp-nav-item" data-view="share">
+          <i class="pi pi-share-alt"></i>
+          <span>Share</span>
+        </button>
+        <button class="cp-nav-item active" data-view="settings">
+          <i class="pi pi-cog"></i>
+          <span>Settings</span>
+        </button>
+      </nav>
+    </div>
+
+    <!-- Share View -->
+    <div id="view-share" class="cp-view" style="display: none;">
+      <header class="cp-header">
+        <h1>Share</h1>
+      </header>
+      <div class="cp-share-content">
+        <div class="cp-share-section">
+          <h4>Send Password</h4>
+          <p class="cp-share-desc">Share a login securely with another CryptoPass user</p>
+          <div class="cp-share-form">
+            <div class="cp-form-group">
+              <label>Select Item</label>
+              <select id="share-item-select" class="cp-select">
+                <option value="">Choose a login...</option>
+              </select>
+            </div>
+            <div class="cp-form-group">
+              <label>Recipient Wallet Address</label>
+              <input type="text" id="share-recipient" class="cp-input" placeholder="0x...">
+            </div>
+            <button class="cp-btn cp-btn-primary cp-btn-block" id="btn-send-share">
+              <i class="pi pi-send"></i> Send
+            </button>
           </div>
         </div>
+      </div>
 
-        <div class="cp-settings-section">
-          <h4>About</h4>
-          <div class="cp-settings-item">
-            <span class="cp-settings-label">Version</span>
-            <span class="cp-settings-value">1.0.0</span>
+      <!-- Bottom Navigation -->
+      <nav class="cp-bottom-nav">
+        <button class="cp-nav-item" data-view="vault">
+          <i class="pi pi-th-large"></i>
+          <span>Vault</span>
+        </button>
+        <button class="cp-nav-item" data-view="generator">
+          <i class="pi pi-key"></i>
+          <span>Generator</span>
+        </button>
+        <button class="cp-nav-item active" data-view="share">
+          <i class="pi pi-share-alt"></i>
+          <span>Share</span>
+        </button>
+        <button class="cp-nav-item" data-view="settings">
+          <i class="pi pi-cog"></i>
+          <span>Settings</span>
+        </button>
+      </nav>
+    </div>
+
+    <!-- 2FA Dialog -->
+    <div id="dialog-2fa" class="cp-dialog" style="display: none;">
+      <div class="cp-dialog-backdrop"></div>
+      <div class="cp-dialog-content">
+        <div class="cp-dialog-header">
+          <h3><i class="pi pi-stopwatch"></i> 2FA Codes</h3>
+          <button class="cp-dialog-close" id="btn-close-2fa">
+            <i class="pi pi-times"></i>
+          </button>
+        </div>
+        <div class="cp-dialog-body">
+          <div id="2fa-list" class="cp-2fa-list">
+            <!-- 2FA items rendered here -->
+          </div>
+          <div id="2fa-empty" class="cp-empty-state" style="display: none;">
+            <i class="pi pi-stopwatch"></i>
+            <p>No 2FA codes found</p>
+            <span>Add TOTP secret to your login items</span>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Footer -->
-    <footer class="cp-footer" id="vault-footer" style="display: none;">
-      <div class="cp-footer-info">
-        <i class="pi pi-wallet"></i>
-        <span id="footer-wallet">0x1234...5678</span>
+    <!-- Notifications Dialog -->
+    <div id="dialog-notifications" class="cp-dialog" style="display: none;">
+      <div class="cp-dialog-backdrop"></div>
+      <div class="cp-dialog-content cp-notifications-panel">
+        <div class="cp-dialog-header">
+          <h3><i class="pi pi-bell"></i> Notifications</h3>
+          <div class="cp-dialog-header-actions">
+            <button class="cp-btn-text" id="btn-clear-notifications">Clear all</button>
+            <button class="cp-dialog-close" id="btn-close-notifications">
+              <i class="pi pi-times"></i>
+            </button>
+          </div>
+        </div>
+        <div class="cp-dialog-body">
+          <div id="notifications-list" class="cp-notifications-list">
+            <!-- Notifications rendered here -->
+          </div>
+          <div id="notifications-empty" class="cp-empty-state">
+            <i class="pi pi-inbox"></i>
+            <p>No notifications</p>
+            <span>You're all caught up!</span>
+          </div>
+        </div>
       </div>
-      <span id="footer-sync" class="cp-footer-sync">Synced</span>
-    </footer>
+    </div>
   </div>
 
   <script src="../services/crypto.js"></script>

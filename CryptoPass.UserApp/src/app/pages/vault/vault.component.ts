@@ -143,7 +143,10 @@ export class VaultComponent implements OnInit, OnDestroy {
         
         this.passwords.set(decryptedPasswords);
         this.lastSyncTime.set(vault.updatedAt);
-        
+
+        // Sync loaded vault to browser extension
+        this.syncToExtension();
+
         if (decryptedPasswords.length < vault.passwords.length) {
           this.notificationService.addNotification({
             type: 'system',
@@ -198,8 +201,23 @@ export class VaultComponent implements OnInit, OnDestroy {
   private async autoSave(): Promise<void> {
     try {
       await this.syncVault();
+      // Also sync to browser extension if content script is present
+      this.syncToExtension();
     } catch (error) {
       // Error already logged in syncVault
+    }
+  }
+
+  // Sync decrypted vault to browser extension
+  private syncToExtension(): void {
+    try {
+      const decryptedItems = this.passwords();
+      window.postMessage({
+        type: 'CRYPTOPASS_VAULT_UPDATE',
+        vault: decryptedItems
+      }, '*');
+    } catch (error) {
+      // Silent fail - extension may not be installed
     }
   }
 
@@ -226,8 +244,19 @@ export class VaultComponent implements OnInit, OnDestroy {
 
   async deletePassword(id: string): Promise<void> {
     if (confirm('Are you sure you want to delete this password?')) {
-      this.passwords.update((passwords) => passwords.filter((p) => p.id !== id));
-      await this.autoSave();
+      try {
+        // Delete from Ceramic
+        await this.storageService.deleteEntry(id);
+        // Reload vault from Ceramic to update local state
+        await this.loadVault();
+      } catch (error: any) {
+        console.error('Error deleting password:', error);
+        this.notificationService.addNotification({
+          type: 'system',
+          title: 'Fehler',
+          message: 'Fehler beim Löschen des Passworts: ' + error.message,
+        });
+      }
     }
   }
 

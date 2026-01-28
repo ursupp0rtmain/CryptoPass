@@ -4,8 +4,17 @@
 // Encryption constants - must match UserApp
 const ENCRYPTION_SALT = 'CryptoPass-Salt-v1';
 
+// Web App URL - change this to your deployed URL in production
+const DEFAULT_WEBAPP_URL = 'http://localhost:4200/extension-login';
+
 // State
 let isConnecting = false;
+
+// Get the web app URL (can be configured via storage)
+async function getWebAppUrl() {
+  const stored = await chrome.storage.local.get(['webAppUrl']);
+  return stored.webAppUrl || DEFAULT_WEBAPP_URL;
+}
 
 // Message handling
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -26,6 +35,23 @@ async function handleMessage(message, sender) {
 
     case 'getState':
       return await getState();
+
+    case 'storeCredentials':
+      // Received from web app via content script
+      await chrome.storage.local.set({
+        walletAddress: message.walletAddress,
+        masterKey: message.masterKey,
+        ceramic_did: message.ceramicDid,
+      });
+      return { success: true };
+
+    case 'clearCredentials':
+      await chrome.storage.local.remove(['walletAddress', 'masterKey', 'ceramic_did', 'vault']);
+      return { success: true };
+
+    case 'updateVault':
+      await chrome.storage.local.set({ vault: message.vault });
+      return { success: true };
 
     default:
       return { success: false, error: 'Unknown action' };
@@ -57,10 +83,14 @@ async function connectWallet() {
       };
     }
 
-    // Redirect to web app for authentication
+    // Open CryptoPass web app for login (supports all wallets including WalletConnect)
+    // The web app will send credentials back via postMessage -> content script
+    const webAppUrl = await getWebAppUrl();
+    await chrome.tabs.create({ url: webAppUrl });
     return {
       success: false,
-      error: 'Please connect your wallet in the CryptoPass web app first',
+      error: 'opening_login',
+      message: 'Opening CryptoPass login...'
     };
   } catch (error) {
     console.error('Connection error:', error);

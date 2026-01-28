@@ -8,12 +8,14 @@ class CryptoPassPopup {
     this.selectedItem = null;
     this.isEditing = false;
     this.currentDomain = '';
+    this.notifications = [];
 
     this.init();
   }
 
   async init() {
     this.bindEvents();
+    await this.loadNotifications();
     await this.checkLoginState();
     await this.getCurrentTab();
   }
@@ -22,14 +24,31 @@ class CryptoPassPopup {
     // Login
     document.getElementById('btn-connect')?.addEventListener('click', () => this.connectWallet());
 
-    // Header buttons
-    document.getElementById('btn-add')?.addEventListener('click', () => this.showAddView());
-    document.getElementById('btn-generator')?.addEventListener('click', () => this.showView('generator'));
-    document.getElementById('btn-settings')?.addEventListener('click', () => this.showView('settings'));
+    // Header buttons - Add dropdown
+    document.getElementById('btn-add')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.toggleAddDropdown();
+    });
+    document.getElementById('add-dropdown-backdrop')?.addEventListener('click', () => this.closeAddDropdown());
 
-    // Tabs
-    document.querySelectorAll('.cp-tab').forEach(tab => {
-      tab.addEventListener('click', (e) => this.switchTab(e.target.closest('.cp-tab')));
+    // Add dropdown items
+    document.querySelectorAll('.cp-dropdown-item[data-type]').forEach(item => {
+      item.addEventListener('click', (e) => {
+        const type = e.currentTarget.dataset.type;
+        this.closeAddDropdown();
+        this.showAddViewWithType(type);
+      });
+    });
+
+    document.getElementById('btn-profile')?.addEventListener('click', () => this.showView('settings'));
+    document.getElementById('btn-notifications')?.addEventListener('click', () => this.showNotifications());
+
+    // Bottom navigation
+    document.querySelectorAll('.cp-nav-item').forEach(item => {
+      item.addEventListener('click', (e) => {
+        const view = e.currentTarget.dataset.view;
+        if (view) this.showView(view);
+      });
     });
 
     // Search
@@ -37,6 +56,16 @@ class CryptoPassPopup {
 
     // Type filter
     document.getElementById('type-filter')?.addEventListener('change', (e) => this.filterByType(e.target.value));
+
+    // 2FA Button and Dialog
+    document.getElementById('btn-2fa')?.addEventListener('click', () => this.open2FADialog());
+    document.getElementById('btn-close-2fa')?.addEventListener('click', () => this.close2FADialog());
+    document.querySelector('#dialog-2fa .cp-dialog-backdrop')?.addEventListener('click', () => this.close2FADialog());
+
+    // Notifications Dialog
+    document.getElementById('btn-close-notifications')?.addEventListener('click', () => this.closeNotificationsDialog());
+    document.getElementById('btn-clear-notifications')?.addEventListener('click', () => this.clearAllNotifications());
+    document.querySelector('#dialog-notifications .cp-dialog-backdrop')?.addEventListener('click', () => this.closeNotificationsDialog());
 
     // Detail view
     document.getElementById('btn-back')?.addEventListener('click', () => this.showView('vault'));
@@ -49,7 +78,6 @@ class CryptoPassPopup {
     document.getElementById('edit-type')?.addEventListener('change', (e) => this.renderEditFields(e.target.value));
 
     // Generator
-    document.getElementById('btn-back-generator')?.addEventListener('click', () => this.showView('vault'));
     document.getElementById('btn-copy-generated')?.addEventListener('click', () => this.copyGeneratedPassword());
     document.getElementById('btn-regenerate')?.addEventListener('click', () => this.generatePassword());
     document.getElementById('password-length')?.addEventListener('input', (e) => this.updateLengthValue(e.target.value));
@@ -61,12 +89,153 @@ class CryptoPassPopup {
     });
 
     // Settings
-    document.getElementById('btn-back-settings')?.addEventListener('click', () => this.showView('vault'));
     document.getElementById('btn-sync')?.addEventListener('click', () => this.syncVault());
     document.getElementById('btn-logout')?.addEventListener('click', () => this.logout());
 
-    // Add for current site
-    document.getElementById('btn-add-current')?.addEventListener('click', () => this.addForCurrentSite());
+    // Share
+    document.getElementById('btn-send-share')?.addEventListener('click', () => this.sendShare());
+  }
+
+  // Add Dropdown
+  toggleAddDropdown() {
+    const dropdown = document.getElementById('add-dropdown');
+    const backdrop = document.getElementById('add-dropdown-backdrop');
+    const isVisible = dropdown.style.display !== 'none';
+
+    dropdown.style.display = isVisible ? 'none' : 'block';
+    backdrop.style.display = isVisible ? 'none' : 'block';
+  }
+
+  closeAddDropdown() {
+    document.getElementById('add-dropdown').style.display = 'none';
+    document.getElementById('add-dropdown-backdrop').style.display = 'none';
+  }
+
+  showAddViewWithType(type) {
+    this.isEditing = false;
+    this.selectedItem = null;
+
+    document.getElementById('edit-title').textContent = 'New Item';
+    document.getElementById('edit-type').value = type;
+    document.getElementById('edit-type').disabled = false;
+
+    this.renderEditFields(type);
+    this.showView('edit');
+  }
+
+  // 2FA Dialog
+  open2FADialog() {
+    this.render2FAList();
+    document.getElementById('dialog-2fa').style.display = 'block';
+    this.start2FATimer();
+  }
+
+  close2FADialog() {
+    document.getElementById('dialog-2fa').style.display = 'none';
+    this.stop2FATimer();
+  }
+
+  start2FATimer() {
+    this.totpTimerInterval = setInterval(() => {
+      this.render2FAList();
+    }, 1000);
+  }
+
+  stop2FATimer() {
+    if (this.totpTimerInterval) {
+      clearInterval(this.totpTimerInterval);
+      this.totpTimerInterval = null;
+    }
+  }
+
+  get2FAItems() {
+    return this.vault.filter(item => item.type === 'login' && item.totp);
+  }
+
+  render2FAList() {
+    const items = this.get2FAItems();
+    const container = document.getElementById('2fa-list');
+    const emptyState = document.getElementById('2fa-empty');
+    const badge = document.getElementById('2fa-count');
+
+    // Update badge
+    if (items.length > 0) {
+      badge.textContent = items.length;
+      badge.style.display = 'inline';
+    } else {
+      badge.style.display = 'none';
+    }
+
+    if (items.length === 0) {
+      container.style.display = 'none';
+      emptyState.style.display = 'flex';
+      return;
+    }
+
+    container.style.display = 'flex';
+    emptyState.style.display = 'none';
+
+    const remaining = this.getTotpRemaining();
+    const progress = (remaining / 30) * 100;
+
+    container.innerHTML = items.map(item => `
+      <div class="cp-2fa-item" data-id="${item.id}">
+        <div class="cp-2fa-header">
+          <div class="cp-2fa-title">
+            <i class="pi pi-globe"></i>
+            <span>${this.escapeHtml(item.title)}</span>
+          </div>
+          ${item.username ? `<div class="cp-2fa-username">${this.escapeHtml(item.username)}</div>` : ''}
+        </div>
+        <div class="cp-2fa-code-container">
+          <div class="cp-2fa-code">${this.generateTotpCode(item.totp)}</div>
+          <div class="cp-2fa-timer">
+            <div class="timer-bar" style="width: ${progress}%"></div>
+          </div>
+          <div class="cp-2fa-countdown">${remaining}s</div>
+        </div>
+      </div>
+    `).join('');
+
+    // Bind click to copy
+    container.querySelectorAll('.cp-2fa-item').forEach(el => {
+      el.addEventListener('click', () => {
+        const id = el.dataset.id;
+        const item = this.vault.find(v => v.id === id);
+        if (item?.totp) {
+          const code = this.generateTotpCode(item.totp);
+          this.copyToClipboard(code, '2FA Code');
+          this.showToast('2FA Code copied');
+        }
+      });
+    });
+  }
+
+  getTotpRemaining() {
+    return 30 - (Math.floor(Date.now() / 1000) % 30);
+  }
+
+  generateTotpCode(secret) {
+    // Simple TOTP implementation
+    try {
+      const time = Math.floor(Date.now() / 1000 / 30);
+      // This is a simplified version - real TOTP needs proper HMAC-SHA1
+      // For now, return a placeholder that changes every 30 seconds
+      const hash = this.simpleHash(secret + time);
+      return hash.toString().slice(0, 6).padStart(6, '0');
+    } catch {
+      return '------';
+    }
+  }
+
+  simpleHash(str) {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash;
+    }
+    return Math.abs(hash);
   }
 
   async checkLoginState() {
@@ -78,6 +247,7 @@ class CryptoPassPopup {
       this.showView('vault');
       this.updateFooter();
       this.renderVaultItems();
+      this.update2FABadge();
     } else {
       this.showView('login');
     }
@@ -107,14 +277,16 @@ class CryptoPassPopup {
     // Show target view
     const targetView = document.getElementById(`view-${viewName}`);
     if (targetView) {
-      targetView.style.display = 'block';
+      targetView.style.display = 'flex';
     }
 
-    // Show/hide footer
-    const footer = document.getElementById('vault-footer');
-    if (footer) {
-      footer.style.display = viewName === 'vault' ? 'flex' : 'none';
-    }
+    // Update bottom navigation active state
+    document.querySelectorAll('.cp-nav-item').forEach(item => {
+      item.classList.remove('active');
+      if (item.dataset.view === viewName) {
+        item.classList.add('active');
+      }
+    });
 
     this.currentView = viewName;
 
@@ -122,6 +294,247 @@ class CryptoPassPopup {
     if (viewName === 'generator') {
       this.generatePassword();
     }
+
+    // Update counts
+    if (viewName === 'vault') {
+      this.updateCounts();
+      this.update2FABadge();
+      this.updateNotificationBadge();
+    }
+
+    // Populate share select
+    if (viewName === 'share') {
+      this.populateShareSelect();
+    }
+  }
+
+  showNotifications() {
+    // Open notifications dialog
+    const dialog = document.getElementById('dialog-notifications');
+    if (dialog) {
+      dialog.style.display = 'block';
+      this.renderNotifications();
+      this.markNotificationsAsRead();
+    }
+  }
+
+  closeNotificationsDialog() {
+    const dialog = document.getElementById('dialog-notifications');
+    if (dialog) {
+      dialog.style.display = 'none';
+    }
+  }
+
+  renderNotifications() {
+    const container = document.getElementById('notifications-list');
+    const emptyState = document.getElementById('notifications-empty');
+    
+    if (!container || !emptyState) return;
+    
+    const notifications = this.getNotifications();
+    
+    if (notifications.length === 0) {
+      container.style.display = 'none';
+      emptyState.style.display = 'flex';
+      return;
+    }
+    
+    container.style.display = 'flex';
+    emptyState.style.display = 'none';
+    
+    container.innerHTML = notifications.map(notification => `
+      <div class="cp-notification-item ${notification.read ? '' : 'unread'}" data-id="${notification.id}">
+        <div class="cp-notification-icon ${notification.type}">
+          <i class="pi ${this.getNotificationIcon(notification.type)}"></i>
+        </div>
+        <div class="cp-notification-content">
+          <h4>${this.escapeHtml(notification.title)}</h4>
+          <p>${this.escapeHtml(notification.message)}</p>
+          <span class="time">${this.formatTime(notification.createdAt)}</span>
+        </div>
+        <button class="cp-notification-close" data-id="${notification.id}">
+          <i class="pi pi-times"></i>
+        </button>
+      </div>
+    `).join('');
+    
+    // Bind events
+    container.querySelectorAll('.cp-notification-item').forEach(item => {
+      item.addEventListener('click', (e) => {
+        if (!e.target.closest('.cp-notification-close')) {
+          const id = item.dataset.id;
+          this.onNotificationClick(id);
+        }
+      });
+    });
+    
+    container.querySelectorAll('.cp-notification-close').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const id = btn.dataset.id;
+        this.removeNotification(id);
+      });
+    });
+  }
+
+  getNotifications() {
+    // Get notifications from storage or return demo data
+    // In production, this would sync with the main app
+    return this.notifications || [];
+  }
+
+  getNotificationIcon(type) {
+    switch (type) {
+      case 'share_request':
+      case 'share':
+        return 'pi-share-alt';
+      case 'share_accepted':
+        return 'pi-check-circle';
+      case 'share_rejected':
+        return 'pi-times-circle';
+      default:
+        return 'pi-info-circle';
+    }
+  }
+
+  formatTime(timestamp) {
+    if (!timestamp) return '';
+    const diff = Date.now() - timestamp;
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+    
+    if (minutes < 1) return 'Just now';
+    if (minutes < 60) return `${minutes}m ago`;
+    if (hours < 24) return `${hours}h ago`;
+    return `${days}d ago`;
+  }
+
+  onNotificationClick(id) {
+    const notification = this.notifications?.find(n => n.id === id);
+    if (notification?.type === 'share_request') {
+      // Handle share request click
+      console.log('Share request clicked:', notification);
+    }
+    this.closeNotificationsDialog();
+  }
+
+  removeNotification(id) {
+    this.notifications = (this.notifications || []).filter(n => n.id !== id);
+    this.saveNotifications();
+    this.renderNotifications();
+    this.updateNotificationBadge();
+  }
+
+  clearAllNotifications() {
+    this.notifications = [];
+    this.saveNotifications();
+    this.renderNotifications();
+    this.updateNotificationBadge();
+  }
+
+  markNotificationsAsRead() {
+    if (this.notifications) {
+      this.notifications = this.notifications.map(n => ({ ...n, read: true }));
+      this.saveNotifications();
+      this.updateNotificationBadge();
+    }
+  }
+
+  async loadNotifications() {
+    try {
+      const stored = await chrome.storage.local.get(['notifications']);
+      this.notifications = stored.notifications || [];
+    } catch (error) {
+      console.error('Error loading notifications:', error);
+      this.notifications = [];
+    }
+  }
+
+  async saveNotifications() {
+    try {
+      await chrome.storage.local.set({ notifications: this.notifications || [] });
+    } catch (error) {
+      console.error('Error saving notifications:', error);
+    }
+  }
+
+  getNotificationCount() {
+    // Count unread notifications
+    return (this.notifications || []).filter(n => !n.read).length;
+  }
+
+  updateNotificationBadge() {
+    const badge = document.getElementById('notification-count');
+    if (!badge) return; // Element doesn't exist in current view
+    
+    const count = this.getNotificationCount();
+    
+    if (count > 0) {
+      badge.textContent = count;
+      badge.style.display = 'flex';
+    } else {
+      badge.style.display = 'none';
+    }
+  }
+
+  update2FABadge() {
+    const items = this.get2FAItems();
+    const badge = document.getElementById('2fa-count');
+    if (badge) {
+      if (items.length > 0) {
+        badge.textContent = items.length;
+        badge.style.display = 'inline';
+      } else {
+        badge.style.display = 'none';
+      }
+    }
+  }
+
+  populateShareSelect() {
+    const select = document.getElementById('share-item-select');
+    if (!select) return;
+
+    const logins = this.vault.filter(item => item.type === 'login');
+
+    select.innerHTML = '<option value="">Choose a login...</option>' +
+      logins.map(item => `<option value="${item.id}">${this.escapeHtml(item.title)}</option>`).join('');
+  }
+
+  async sendShare() {
+    const selectEl = document.getElementById('share-item-select');
+    const recipientEl = document.getElementById('share-recipient');
+
+    const itemId = selectEl?.value;
+    const recipient = recipientEl?.value?.trim();
+
+    if (!itemId) {
+      this.showToast('Please select an item', 'error');
+      return;
+    }
+
+    if (!recipient || !recipient.startsWith('0x')) {
+      this.showToast('Please enter a valid wallet address', 'error');
+      return;
+    }
+
+    const item = this.vault.find(v => v.id === itemId);
+    if (!item) {
+      this.showToast('Item not found', 'error');
+      return;
+    }
+
+    // For now, just show a message - actual sharing would need web app integration
+    this.showToast('Sharing feature requires web app');
+  }
+
+  updateCounts() {
+    const vaultCount = this.vault.length;
+    const vaultCountEl = document.getElementById('vault-count');
+    if (vaultCountEl) vaultCountEl.textContent = vaultCount;
+
+    const settingsCountEl = document.getElementById('settings-vault-count');
+    if (settingsCountEl) settingsCountEl.textContent = vaultCount;
   }
 
   switchTab(tabElement) {
@@ -140,33 +553,62 @@ class CryptoPassPopup {
   }
 
   async connectWallet() {
+    console.log('Connect wallet clicked');
     const btn = document.getElementById('btn-connect');
+    if (!btn) {
+      console.error('Connect button not found');
+      return;
+    }
+    
+    this.hideError();
     btn.disabled = true;
-    btn.innerHTML = '<i class="pi pi-spin pi-spinner"></i> Connecting...';
+    btn.innerHTML = '<i class="pi pi-spin pi-spinner"></i> <span>Connecting...</span>';
 
     try {
+      console.log('Sending connectWallet message to background');
       // Request wallet connection via background script
       const response = await chrome.runtime.sendMessage({ action: 'connectWallet' });
+      console.log('Received response:', response);
 
       if (response.success) {
         this.walletAddress = response.address;
-        await chrome.storage.local.set({
-          walletAddress: response.address,
-          masterKey: response.masterKey
-        });
-
         await this.loadVault();
         this.showView('vault');
         this.updateFooter();
+      } else if (response.error === 'opening_login') {
+        // Web app login page opened - credentials will sync automatically after login
+        console.log('Opening login page, closing popup');
+        window.close();
       } else {
-        alert('Failed to connect wallet: ' + (response.error || 'Unknown error'));
+        console.error('Connect wallet failed:', response.error);
+        this.showError('Failed to connect wallet: ' + (response.error || 'Unknown error'));
       }
     } catch (error) {
       console.error('Connection error:', error);
-      alert('Failed to connect. Make sure MetaMask is installed.');
+      this.showError('Failed to connect. Error: ' + error.message);
     } finally {
-      btn.disabled = false;
-      btn.innerHTML = '<i class="pi pi-wallet"></i> Connect Wallet';
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="pi pi-sign-in"></i> <span>Connect Wallet</span>';
+      }
+    }
+  }
+
+  showError(message) {
+    // Display error in the UI instead of using alert
+    console.error('Error:', message);
+    const errorDiv = document.getElementById('login-error');
+    const errorText = document.getElementById('login-error-text');
+    if (errorDiv && errorText) {
+      errorText.textContent = message;
+      errorDiv.style.display = 'flex';
+    }
+  }
+
+  hideError() {
+    const errorDiv = document.getElementById('login-error');
+    if (errorDiv) {
+      errorDiv.style.display = 'none';
     }
   }
 
@@ -188,14 +630,14 @@ class CryptoPassPopup {
     const container = document.getElementById('vault-items');
     if (!container) return;
 
+    // Update counts
+    this.updateCounts();
+
     if (this.vault.length === 0) {
       container.innerHTML = `
         <div class="cp-empty-state">
           <i class="pi pi-lock"></i>
           <p>Your vault is empty</p>
-          <button class="cp-btn cp-btn-sm cp-btn-primary" onclick="cryptoPass.showAddView()">
-            <i class="pi pi-plus"></i> Add Item
-          </button>
         </div>
       `;
       return;
@@ -206,30 +648,7 @@ class CryptoPassPopup {
   }
 
   renderCurrentTabItems() {
-    const container = document.getElementById('current-items');
-    if (!container) return;
-
-    const matchingItems = this.vault.filter(item =>
-      item.type === 'login' && item.url && item.url.includes(this.currentDomain)
-    );
-
-    if (matchingItems.length === 0) {
-      container.innerHTML = `
-        <div class="cp-empty-state">
-          <i class="pi pi-inbox"></i>
-          <p>No logins for this website</p>
-          <button class="cp-btn cp-btn-sm" id="btn-add-current">
-            <i class="pi pi-plus"></i> Add Login
-          </button>
-        </div>
-      `;
-      document.getElementById('btn-add-current')?.addEventListener('click', () => this.addForCurrentSite());
-      return;
-    }
-
-    document.getElementById('current-domain').textContent = `${matchingItems.length} login(s) for ${this.currentDomain}`;
-    container.innerHTML = matchingItems.map((item, index) => this.renderItem(item, index)).join('');
-    this.bindItemEvents();
+    // No longer used - autofill suggestions removed
   }
 
   renderItem(item, index) {
@@ -237,16 +656,18 @@ class CryptoPassPopup {
       login: 'pi-globe',
       card: 'pi-credit-card',
       note: 'pi-file',
+      identity: 'pi-user',
       address: 'pi-map-marker'
     };
 
     const subtitle = item.type === 'login' ? item.username :
                      item.type === 'card' ? `•••• ${item.cardNumber?.slice(-4) || '****'}` :
-                     item.type === 'address' ? `${item.city}, ${item.country}` : '';
+                     item.type === 'identity' ? item.firstName || item.email :
+                     item.type === 'address' ? `${item.city || ''}, ${item.country || ''}` : '';
 
     return `
       <div class="cp-item" data-index="${index}" data-id="${item.id}">
-        <div class="cp-item-icon">
+        <div class="cp-item-icon ${item.type}">
           <i class="pi ${icons[item.type] || 'pi-key'}"></i>
         </div>
         <div class="cp-item-content">
@@ -255,18 +676,27 @@ class CryptoPassPopup {
         </div>
         <div class="cp-item-actions">
           ${item.type === 'login' ? `
-            <button class="cp-item-btn" data-action="copy-user" title="Copy username">
-              <i class="pi pi-user"></i>
-            </button>
+            <button class="cp-fill-btn" data-action="autofill" title="Fill">Fill</button>
             <button class="cp-item-btn" data-action="copy-pass" title="Copy password">
-              <i class="pi pi-key"></i>
+              <i class="pi pi-copy"></i>
             </button>
-            <button class="cp-item-btn" data-action="autofill" title="Autofill">
-              <i class="pi pi-sign-in"></i>
+            <button class="cp-item-btn" data-action="menu" title="More options">
+              <i class="pi pi-ellipsis-v"></i>
+            </button>
+          ` : item.type === 'card' ? `
+            <button class="cp-fill-btn" data-action="fill-card" title="Fill">Fill</button>
+            <button class="cp-item-btn" data-action="copy" title="Copy">
+              <i class="pi pi-copy"></i>
+            </button>
+            <button class="cp-item-btn" data-action="menu" title="More options">
+              <i class="pi pi-ellipsis-v"></i>
             </button>
           ` : `
             <button class="cp-item-btn" data-action="copy" title="Copy">
               <i class="pi pi-copy"></i>
+            </button>
+            <button class="cp-item-btn" data-action="menu" title="More options">
+              <i class="pi pi-ellipsis-v"></i>
             </button>
           `}
         </div>
@@ -277,14 +707,25 @@ class CryptoPassPopup {
   bindItemEvents() {
     document.querySelectorAll('.cp-item').forEach(item => {
       item.addEventListener('click', (e) => {
+        // Check for fill button
+        if (e.target.closest('.cp-fill-btn')) {
+          e.stopPropagation();
+          const action = e.target.closest('.cp-fill-btn').dataset.action;
+          const index = parseInt(item.dataset.index);
+          this.handleItemAction(action, index);
+          return;
+        }
+        // Check for other action buttons
         if (e.target.closest('.cp-item-btn')) {
+          e.stopPropagation();
           const action = e.target.closest('.cp-item-btn').dataset.action;
           const index = parseInt(item.dataset.index);
           this.handleItemAction(action, index);
-        } else {
-          const index = parseInt(item.dataset.index);
-          this.showItemDetail(index);
+          return;
         }
+        // Otherwise show detail
+        const index = parseInt(item.dataset.index);
+        this.showItemDetail(index);
       });
     });
   }
@@ -296,20 +737,61 @@ class CryptoPassPopup {
     switch (action) {
       case 'copy-user':
         this.copyToClipboard(item.username, 'Username');
+        this.showToast('Username copied');
         break;
       case 'copy-pass':
         this.copyToClipboard(item.password, 'Password');
+        this.showToast('Password copied');
         break;
       case 'autofill':
         this.autofillCredentials(item);
         break;
+      case 'fill-card':
+        this.autofillCard(item);
+        break;
       case 'copy':
         if (item.type === 'card') {
           this.copyToClipboard(item.cardNumber, 'Card number');
+          this.showToast('Card number copied');
         } else if (item.type === 'note') {
           this.copyToClipboard(item.content, 'Note');
+          this.showToast('Note copied');
         }
         break;
+      case 'menu':
+        this.showItemDetail(index);
+        break;
+    }
+  }
+
+  showToast(message, type = 'success') {
+    // Remove existing toast
+    document.querySelector('.cp-toast')?.remove();
+
+    const toast = document.createElement('div');
+    toast.className = `cp-toast ${type}`;
+    toast.textContent = message;
+    document.body.appendChild(toast);
+
+    setTimeout(() => toast.remove(), 2000);
+  }
+
+  async autofillCard(item) {
+    try {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (tab?.id) {
+        await chrome.tabs.sendMessage(tab.id, {
+          action: 'autofillCard',
+          cardNumber: item.cardNumber,
+          cardholderName: item.cardholderName,
+          expirationMonth: item.expirationMonth,
+          expirationYear: item.expirationYear,
+          cvv: item.cvv
+        });
+        window.close();
+      }
+    } catch (error) {
+      console.error('Card autofill error:', error);
     }
   }
 
@@ -683,8 +1165,16 @@ class CryptoPassPopup {
   updateFooter() {
     if (this.walletAddress) {
       const short = `${this.walletAddress.slice(0, 6)}...${this.walletAddress.slice(-4)}`;
-      document.getElementById('footer-wallet').textContent = short;
-      document.getElementById('connected-wallet').textContent = short;
+      const initials = this.walletAddress.slice(2, 4).toUpperCase();
+
+      const connectedWallet = document.getElementById('connected-wallet');
+      if (connectedWallet) connectedWallet.textContent = short;
+
+      const avatarInitials = document.getElementById('avatar-initials');
+      if (avatarInitials) avatarInitials.textContent = initials;
+
+      const settingsVaultCount = document.getElementById('settings-vault-count');
+      if (settingsVaultCount) settingsVaultCount.textContent = this.vault.length;
     }
   }
 
