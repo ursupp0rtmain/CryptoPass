@@ -1,0 +1,37 @@
+{
+  "anchor": {},
+  "http-api": {
+    "cors-allowed-origins": [".*"],
+    "admin-dids": ["did:key:z6Mkge31dDNxE8uzUgPHez3ubePXBaoH7yYCJi1BmbDygfHf"]
+  },
+  "ipfs": {
+    "mode": "remote",
+    "host": "http://ipfs:5001"
+  },
+  "logger": {
+    "log-level": 0,
+    "log-to-files": false
+  },
+  "metrics": {
+    "metrics-exporter-enabled": false
+  },
+  "network": {
+    "name": "inmemory"
+  },
+  "node": {
+    "disable-signature-verification": true
+  },
+  "state-store": {
+    "mode": "fs",
+    "local-directory": "/root/.ceramic/statestore/"
+  },
+  "indexing": {
+    "db": "sqlite:///root/.ceramic/indexing.sqlite",
+    "allow-queries-before-historical-sync": true,
+    "disable-composedb": false,
+    "enable-historical-sync": false
+  },
+  "did-resolver": {
+    "resolve-timeout": 10000
+  }
+}

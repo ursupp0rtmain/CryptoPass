@@ -1,0 +1,84 @@
+<div class="dialog-backdrop" (click)="close()">
+  <div class="dialog card glass" (click)="$event.stopPropagation()">
+    <div class="dialog-header">
+      <h2>
+        <i class="pi pi-share-alt"></i>
+        Share Password
+      </h2>
+      <button class="btn-close" (click)="close()">
+        <i class="pi pi-times"></i>
+      </button>
+    </div>
+
+    @if (success()) {
+      <div class="dialog-content success-state">
+        <i class="pi pi-check-circle success-icon"></i>
+        <h3>Password Sent!</h3>
+        <p>The password "{{ password().title }}" has been sent.</p>
+        @if (txHash()) {
+          <div class="tx-info">
+            <span class="label">Transaction:</span>
+            <a
+              [href]="'https://etherscan.io/tx/' + txHash()"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="tx-link"
+            >
+              {{ txHash()?.slice(0, 10) }}...{{ txHash()?.slice(-8) }}
+            </a>
+          </div>
+        }
+        <button class="btn btn-primary" (click)="close()">Done</button>
+      </div>
+    } @else {
+      <div class="dialog-content">
+        <div class="password-preview">
+          <i class="pi pi-key"></i>
+          <span>{{ password().title }}</span>
+        </div>
+
+        <div class="form-group">
+          <label for="recipient">Recipient Wallet Address</label>
+          <input
+            id="recipient"
+            name="recipient-address"
+            type="text"
+            class="input"
+            placeholder="0x..."
+            [(ngModel)]="recipientAddress"
+            [disabled]="isSending()"
+          />
+        </div>
+
+        @if (error()) {
+          <div class="error-message">
+            <i class="pi pi-exclamation-circle"></i>
+            <span>{{ error() }}</span>
+          </div>
+        }
+
+        <div class="fee-info">
+          <i class="pi pi-info-circle"></i>
+          <span>A small fee of <strong>{{ shareFee }} ETH</strong> is required to prevent spam.</span>
+        </div>
+
+        <div class="dialog-actions">
+          <button class="btn" (click)="close()" [disabled]="isSending()">Cancel</button>
+          <button
+            class="btn btn-primary"
+            (click)="sendPassword()"
+            [disabled]="isSending() || !recipientAddress()"
+          >
+            @if (isSending()) {
+              <i class="pi pi-spin pi-spinner"></i>
+              <span>Sending...</span>
+            } @else {
+              <i class="pi pi-send"></i>
+              <span>Send Password</span>
+            }
+          </button>
+        </div>
+      </div>
+    }
+  </div>
+</div>

@@ -1,0 +1,105 @@
+<div class="dialog-backdrop" (click)="close()">
+  <div class="dialog card glass" (click)="$event.stopPropagation()">
+    <div class="dialog-header">
+      <h2>
+        <i class="pi pi-inbox"></i>
+        Password Received
+      </h2>
+      <button class="btn-close" (click)="close()">
+        <i class="pi pi-times"></i>
+      </button>
+    </div>
+
+    <div class="dialog-content">
+      <div class="sender-info">
+        <i class="pi pi-user"></i>
+        <span>From: {{ shareRequest().senderAddress.slice(0, 6) }}...{{ shareRequest().senderAddress.slice(-4) }}</span>
+      </div>
+
+      @if (password) {
+        <div class="password-card">
+          <div class="password-header">
+            <i class="pi pi-key"></i>
+            <h3>{{ password.title }}</h3>
+          </div>
+
+          <div class="password-details">
+            <div class="detail-row">
+              <span class="label">Username:</span>
+              <span class="value">{{ password.username }}</span>
+              <button
+                class="btn-icon"
+                (click)="copyToClipboard(password.username)"
+                title="Copy username"
+              >
+                <i class="pi pi-copy"></i>
+              </button>
+            </div>
+
+            <div class="detail-row">
+              <span class="label">Password:</span>
+              <span class="value">
+                @if (showPassword()) {
+                  {{ password.password }}
+                } @else {
+                  ••••••••
+                }
+              </span>
+              <button
+                class="btn-icon"
+                (click)="togglePasswordVisibility()"
+                [title]="showPassword() ? 'Hide password' : 'Show password'"
+              >
+                <i class="pi" [class.pi-eye]="!showPassword()" [class.pi-eye-slash]="showPassword()"></i>
+              </button>
+              <button
+                class="btn-icon"
+                (click)="copyToClipboard(password.password)"
+                title="Copy password"
+              >
+                <i class="pi pi-copy"></i>
+              </button>
+            </div>
+
+            @if (password.url) {
+              <div class="detail-row">
+                <span class="label">URL:</span>
+                <a [href]="password.url" target="_blank" rel="noopener noreferrer" class="value link">
+                  {{ password.url }}
+                </a>
+              </div>
+            }
+
+            @if (password.notes) {
+              <div class="detail-row">
+                <span class="label">Notes:</span>
+                <span class="value">{{ password.notes }}</span>
+              </div>
+            }
+          </div>
+        </div>
+
+        <div class="dialog-actions">
+          <button class="btn" (click)="reject()">
+            <i class="pi pi-times"></i>
+            <span>Decline</span>
+          </button>
+          <button class="btn btn-primary" (click)="saveToVault()" [disabled]="isSaving()">
+            @if (isSaving()) {
+              <i class="pi pi-spin pi-spinner"></i>
+              <span>Saving...</span>
+            } @else {
+              <i class="pi pi-save"></i>
+              <span>Save to Vault</span>
+            }
+          </button>
+        </div>
+      } @else {
+        <div class="error-state">
+          <i class="pi pi-exclamation-triangle"></i>
+          <p>Unable to decrypt password data</p>
+        </div>
+      }
+    </div>
+  </div>
+</div>

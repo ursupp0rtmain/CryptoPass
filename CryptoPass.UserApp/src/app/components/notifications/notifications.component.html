@@ -1,0 +1,50 @@
+<div class="notifications-container">
+  <button class="notification-bell" (click)="togglePanel()" [class.has-unread]="unreadCount() > 0">
+    <i class="pi pi-bell"></i>
+    @if (unreadCount() > 0) {
+      <span class="badge">{{ unreadCount() }}</span>
+    }
+  </button>
+
+  @if (isOpen) {
+    <div class="notification-panel card glass">
+      <div class="panel-header">
+        <h3>Notifications</h3>
+        @if (notifications().length > 0) {
+          <button class="btn-text" (click)="clearAll()">Clear all</button>
+        }
+      </div>
+
+      <div class="notification-list">
+        @if (notifications().length === 0) {
+          <div class="empty-state">
+            <i class="pi pi-inbox"></i>
+            <p>No notifications</p>
+          </div>
+        } @else {
+          @for (notification of notifications(); track notification.id) {
+            <div
+              class="notification-item"
+              [class.unread]="!notification.read"
+              (click)="onNotificationClick(notification)"
+            >
+              <div class="notification-icon">
+                <i class="pi" [ngClass]="getIcon(notification.type)"></i>
+              </div>
+              <div class="notification-content">
+                <h4>{{ notification.title }}</h4>
+                <p>{{ notification.message }}</p>
+                <span class="time">{{ formatTime(notification.createdAt) }}</span>
+              </div>
+              <button class="btn-close" (click)="removeNotification($event, notification.id)">
+                <i class="pi pi-times"></i>
+              </button>
+            </div>
+          }
+        }
+      </div>
+    </div>
+
+    <div class="backdrop" (click)="close()"></div>
+  }
+</div>

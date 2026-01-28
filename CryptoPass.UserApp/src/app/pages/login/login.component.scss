@@ -1,0 +1,134 @@
+.login-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: var(--sp-4);
+}
+
+.login-card {
+  max-width: 500px;
+  width: 100%;
+  text-align: center;
+}
+
+.login-header {
+  margin-bottom: var(--sp-5);
+
+  h1 {
+    font-size: 3rem;
+    margin: 0 0 var(--sp-2) 0;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .subtitle {
+    font-size: 1.1rem;
+    color: var(--text-color);
+    margin: 0;
+  }
+}
+
+.login-content {
+  margin-bottom: var(--sp-5);
+}
+
+.connect-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  align-items: center;
+}
+
+.wallet-icon {
+  font-size: 4rem;
+  color: var(--text-color);
+  opacity: 0.7;
+}
+
+.warning-message,
+.error-message {
+  padding: var(--sp-3);
+  border-radius: var(--r-sm);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  align-items: center;
+
+  i {
+    font-size: 2rem;
+  }
+
+  p {
+    margin: 0;
+  }
+
+  .small {
+    font-size: 0.9rem;
+    opacity: 0.8;
+  }
+}
+
+.warning-message {
+  background: rgba(255, 193, 7, 0.1);
+  border: 1px solid rgba(255, 193, 7, 0.3);
+  color: #ffc107;
+}
+
+.error-message {
+  background: rgba(244, 67, 54, 0.1);
+  border: 1px solid rgba(244, 67, 54, 0.3);
+  color: #f44336;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  color: white;
+  padding: var(--sp-3) var(--sp-6);
+  font-size: 1.1rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  justify-content: center;
+  min-width: 200px;
+
+  &:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-pop);
+  }
+
+  &:disabled {
+    opacity: 0.7;
+    cursor: wait;
+  }
+}
+
+.info-text {
+  text-align: center;
+
+  p {
+    margin: var(--sp-2) 0;
+    color: var(--text-color);
+  }
+
+  .small {
+    font-size: 0.85rem;
+    opacity: 0.7;
+  }
+}
+
+.login-footer {
+  padding-top: var(--sp-4);
+  border-top: 1px solid var(--border-color);
+
+  .small {
+    font-size: 0.85rem;
+    color: var(--text-color);
+    opacity: 0.6;
+    margin: 0;
+  }
+}

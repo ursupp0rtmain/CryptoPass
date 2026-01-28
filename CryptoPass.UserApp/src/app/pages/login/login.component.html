@@ -1,0 +1,60 @@
+<div class="login-container">
+  <div class="login-card card glass">
+    <div class="login-header">
+      <h1 class="display-font">CryptoPass</h1>
+      <p class="subtitle">Decentralized Password Manager</p>
+    </div>
+
+    <div class="login-content">
+      @if (!hasMetaMask) {
+        <div class="warning-message">
+          <i class="pi pi-exclamation-triangle"></i>
+          <p>MetaMask is not installed.</p>
+          <p class="small">Please install MetaMask to use CryptoPass.</p>
+          <a
+            href="https://metamask.io/download/"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="btn"
+          >
+            Install MetaMask
+          </a>
+        </div>
+      } @else {
+        <div class="connect-section">
+          <i class="pi pi-wallet wallet-icon"></i>
+
+          @if (errorMessage()) {
+            <div class="error-message">
+              <i class="pi pi-times-circle"></i>
+              <p>{{ errorMessage() }}</p>
+            </div>
+          }
+
+          <button
+            class="btn btn-primary"
+            (click)="connectWallet()"
+            [disabled]="isConnecting()"
+          >
+            @if (isConnecting()) {
+              <i class="pi pi-spin pi-spinner"></i>
+              <span>Connecting...</span>
+            } @else {
+              <i class="pi pi-sign-in"></i>
+              <span>Connect Wallet</span>
+            }
+          </button>
+
+          <div class="info-text">
+            <p>Connect your wallet to access your encrypted password vault.</p>
+            <p class="small">Your passwords are encrypted locally and stored on IPFS.</p>
+          </div>
+        </div>
+      }
+    </div>
+
+    <div class="login-footer">
+      <p class="small">Zero-Knowledge • Decentralized • Secure</p>
+    </div>
+  </div>
+</div>

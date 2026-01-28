@@ -1,0 +1,405 @@
+<div class="bitwarden-vault">
+  <!-- Header -->
+  <div class="bw-header">
+    <div class="bw-header-left">
+      <h1 (click)="goToVault()" class="logo-clickable">CryptoPass</h1>
+      <div class="wallet-badge">
+        <i class="pi pi-wallet"></i>
+        <span>{{ walletState().address?.slice(0, 6) }}...{{ walletState().address?.slice(-4) }}</span>
+      </div>
+    </div>
+    <div class="bw-header-right">
+      <app-notifications (shareRequestClicked)="onShareRequestClicked($event)"></app-notifications>
+      <button class="bw-header-btn" (click)="open2FATab()" title="Authenticator">
+        <i class="pi pi-stopwatch"></i>
+        @if (get2FAItems().length > 0) {
+          <span class="badge">{{ get2FAItems().length }}</span>
+        }
+      </button>
+      <button class="bw-header-btn" (click)="syncVault()" [disabled]="isSaving()" title="Sync vault">
+        <i [class]="isSaving() ? 'pi pi-spin pi-spinner' : 'pi pi-sync'"></i>
+      </button>
+      <button class="bw-header-btn" (click)="logout()" title="Logout">
+        <i class="pi pi-sign-out"></i>
+      </button>
+    </div>
+  </div>
+
+  <div class="bw-content">
+    @if (!showAddForm() && !selectedPassword()) {
+      <!-- List View -->
+      <div class="bw-list-container">
+        <div class="bw-list-header">
+          <div class="bw-search">
+            <i class="pi pi-search"></i>
+            <input
+              id="vault-search"
+              name="search"
+              type="text"
+              placeholder="Search vault..."
+              [(ngModel)]="searchTerm"
+            />
+          </div>
+          <div class="bw-add-wrapper">
+            <button class="bw-btn-add" (click)="toggleAddDropdown(); $event.stopPropagation()">
+              <i class="pi pi-plus"></i>
+            </button>
+            @if (showAddDropdown()) {
+              <div class="bw-add-dropdown card glass">
+                <div class="dropdown-header">
+                  <span>New Item</span>
+                </div>
+                <div class="dropdown-list">
+                  @for (option of itemTypeOptions.slice(1); track option.value) {
+                    @if (option.value !== 'all') {
+                      <div
+                        class="dropdown-item"
+                        (click)="addNewPasswordWithType(option.value)"
+                      >
+                        <div class="dropdown-icon">
+                          <i [class]="'pi ' + option.icon"></i>
+                        </div>
+                        <span>{{ option.label }}</span>
+                      </div>
+                    }
+                  }
+                </div>
+              </div>
+              <div class="dropdown-backdrop" (click)="showAddDropdown.set(false)"></div>
+            }
+          </div>
+        </div>
+
+        <!-- Type Filter -->
+        <div class="bw-filter-bar">
+          <div class="bw-filter-dropdown">
+            <select 
+              [(ngModel)]="selectedItemType" 
+              class="bw-filter-select"
+              id="item-type-filter"
+              name="item-type"
+            >
+              @for (option of itemTypeOptions; track option.value) {
+                <option [value]="option.value">
+                  {{ option.label }}
+                </option>
+              }
+            </select>
+            <i class="pi pi-chevron-down"></i>
+          </div>
+        </div>
+
+        @if (isLoading()) {
+          <div class="bw-loading">
+            <i class="pi pi-spin pi-spinner"></i>
+            <p>Loading vault...</p>
+          </div>
+        } @else if (filteredPasswords().length === 0) {
+          <div class="bw-empty">
+            <i class="pi pi-lock"></i>
+            <h3>Your vault is empty</h3>
+            <p>Add a login to get started.</p>
+          </div>
+        } @else {
+          <div class="bw-items-list">
+            <div class="bw-list-section">
+              <div class="bw-section-header">
+                <span>{{ getSectionTitle() }}</span>
+                <span class="count">{{ filteredPasswords().length }}</span>
+              </div>
+              @for (item of filteredPasswords(); track item.id) {
+                <div 
+                  class="bw-item" 
+                  [class.selected]="selectedPasswordId() === item.id"
+                  (click)="selectPassword(item)"
+                >
+                  <div class="bw-item-icon">
+                    <i [class]="getItemIcon(item)"></i>
+                  </div>
+                  <div class="bw-item-details">
+                    <div class="bw-item-name">{{ item.title }}</div>
+                    @if (item.type === 'login') {
+                      <div class="bw-item-subtext">{{ item.username }}</div>
+                    } @else if (item.type === 'card') {
+                      <div class="bw-item-subtext">•••• {{ getLastFourDigits(item.cardNumber) }}</div>
+                    } @else if (item.type === 'address') {
+                      <div class="bw-item-subtext">{{ getAddressPreview(item) }}</div>
+                    }
+                  </div>
+                  <div class="bw-item-actions">
+                    @if (item.type === 'login') {
+                      <button 
+                        class="bw-item-btn" 
+                        (click)="copyToClipboard(item.username, 'Username'); $event.stopPropagation()" 
+                        title="Copy username"
+                      >
+                        <i class="pi pi-user"></i>
+                      </button>
+                      <button 
+                        class="bw-item-btn" 
+                        (click)="copyToClipboard(item.password, 'Password'); $event.stopPropagation()" 
+                        title="Copy password"
+                      >
+                        <i class="pi pi-key"></i>
+                      </button>
+                    } @else if (item.type === 'card') {
+                      <button 
+                        class="bw-item-btn" 
+                        (click)="copyToClipboard(item.cardNumber, 'Card number'); $event.stopPropagation()" 
+                        title="Copy card number"
+                      >
+                        <i class="pi pi-copy"></i>
+                      </button>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    } @else if (showAddForm()) {
+      <!-- Add/Edit Form -->
+      <div class="bw-detail-container">
+        <app-add-password
+          [password]="selectedPassword()"
+          [initialItemType]="newItemType()"
+          (passwordSaved)="onPasswordSaved($event)"
+          (cancelled)="onCancelAdd()"
+        ></app-add-password>
+      </div>
+    } @else if (selectedPassword()) {
+      <!-- Detail View -->
+      <div class="bw-detail-container">
+        <div class="bw-detail-view">
+          <div class="bw-detail-header">
+            <h2>{{ selectedPassword()!.title }}</h2>
+            <div class="bw-detail-actions">
+              @if (isLogin(selectedPassword())) {
+                <button class="bw-icon-btn" (click)="openShareDialog(selectedPassword()!)" title="Share">
+                  <i class="pi pi-share-alt"></i>
+                </button>
+              }
+              <button class="bw-icon-btn" (click)="editPassword(selectedPassword()!)" title="Edit">
+                <i class="pi pi-pencil"></i>
+              </button>
+              <button class="bw-icon-btn" (click)="deletePassword(selectedPassword()!.id); clearSelection()" title="Delete">
+                <i class="pi pi-trash"></i>
+              </button>
+              <button class="bw-icon-btn" (click)="clearSelection()" title="Close">
+                <i class="pi pi-times"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="bw-detail-body">
+            @if (isLogin(selectedPassword())) {
+              <div class="bw-detail-section">
+                <div class="bw-detail-label">Username</div>
+                <div class="bw-detail-value">
+                  <span>{{ $any(selectedPassword()!).username }}</span>
+                  <button 
+                    class="bw-copy-btn" 
+                    (click)="copyToClipboard($any(selectedPassword()!).username, 'Username')"
+                    title="Copy"
+                  >
+                    <i class="pi pi-copy"></i>
+                  </button>
+                </div>
+              </div>
+
+              <div class="bw-detail-section">
+                <div class="bw-detail-label">Password</div>
+                <div class="bw-detail-value">
+                  <span class="bw-password">{{ showDetailPassword() ? $any(selectedPassword()!).password : '••••••••••••' }}</span>
+                  <button 
+                    class="bw-copy-btn" 
+                    (click)="toggleDetailPassword()"
+                    title="Toggle visibility"
+                  >
+                    <i [class]="showDetailPassword() ? 'pi pi-eye-slash' : 'pi pi-eye'"></i>
+                  </button>
+                  <button 
+                    class="bw-copy-btn" 
+                    (click)="copyToClipboard($any(selectedPassword()!).password, 'Password')"
+                    title="Copy"
+                  >
+                    <i class="pi pi-copy"></i>
+                  </button>
+                </div>
+              </div>
+
+              @if ($any(selectedPassword()!).url) {
+                <div class="bw-detail-section">
+                  <div class="bw-detail-label">URI</div>
+                  <div class="bw-detail-value">
+                    <a [href]="$any(selectedPassword()!).url" target="_blank" rel="noopener noreferrer">
+                      {{ $any(selectedPassword()!).url }}
+                    </a>
+                  </div>
+                </div>
+              }
+            } @else if (isNote(selectedPassword())) {
+              <div class="bw-detail-section">
+                <div class="bw-detail-label">Note Content</div>
+                <div class="bw-detail-value">
+                  <div class="bw-note-content">{{ $any(selectedPassword()!).content }}</div>
+                </div>
+              </div>
+            } @else if (isCard(selectedPassword())) {
+              <div class="bw-detail-section">
+                <div class="bw-detail-label">Cardholder Name</div>
+                <div class="bw-detail-value">
+                  <span>{{ $any(selectedPassword()!).cardholderName }}</span>
+                </div>
+              </div>
+
+              <div class="bw-detail-section">
+                <div class="bw-detail-label">Card Number</div>
+                <div class="bw-detail-value">
+                  <span class="bw-password">{{ showDetailPassword() ? $any(selectedPassword()!).cardNumber : '•••• •••• •••• ' + getLastFourDigits($any(selectedPassword()!).cardNumber) }}</span>
+                  <button 
+                    class="bw-copy-btn" 
+                    (click)="toggleDetailPassword()"
+                    title="Toggle visibility"
+                  >
+                    <i [class]="showDetailPassword() ? 'pi pi-eye-slash' : 'pi pi-eye'"></i>
+                  </button>
+                  <button 
+                    class="bw-copy-btn" 
+                    (click)="copyToClipboard($any(selectedPassword()!).cardNumber, 'Card number')"
+                    title="Copy"
+                  >
+                    <i class="pi pi-copy"></i>
+                  </button>
+                </div>
+              </div>
+
+              @if ($any(selectedPassword()!).expirationMonth && $any(selectedPassword()!).expirationYear) {
+                <div class="bw-detail-section">
+                  <div class="bw-detail-label">Expiration</div>
+                  <div class="bw-detail-value">
+                    <span>{{ $any(selectedPassword()!).expirationMonth }} / {{ $any(selectedPassword()!).expirationYear }}</span>
+                  </div>
+                </div>
+              }
+
+              @if ($any(selectedPassword()!).cvv) {
+                <div class="bw-detail-section">
+                  <div class="bw-detail-label">CVV</div>
+                  <div class="bw-detail-value">
+                    <span class="bw-password">{{ showDetailPassword() ? $any(selectedPassword()!).cvv : '•••' }}</span>
+                    <button 
+                      class="bw-copy-btn" 
+                      (click)="toggleDetailPassword()"
+                      title="Toggle visibility"
+                    >
+                      <i [class]="showDetailPassword() ? 'pi pi-eye-slash' : 'pi pi-eye'"></i>
+                    </button>
+                  </div>
+                </div>
+              }
+            } @else if (isAddress(selectedPassword())) {
+              @if ($any(selectedPassword()!).firstName || $any(selectedPassword()!).lastName) {
+                <div class="bw-detail-section">
+                  <div class="bw-detail-label">Name</div>
+                  <div class="bw-detail-value">
+                    <span>{{ $any(selectedPassword()!).firstName }} {{ $any(selectedPassword()!).lastName }}</span>
+                  </div>
+                </div>
+              }
+
+              <div class="bw-detail-section">
+                <div class="bw-detail-label">Address</div>
+                <div class="bw-detail-value">
+                  <div class="bw-address-lines">
+                    <div>{{ $any(selectedPassword()!).addressLine1 }}</div>
+                    @if ($any(selectedPassword()!).addressLine2) {
+                      <div>{{ $any(selectedPassword()!).addressLine2 }}</div>
+                    }
+                    <div>{{ $any(selectedPassword()!).city }}@if ($any(selectedPassword()!).state) {, {{ $any(selectedPassword()!).state }}}</div>
+                    @if ($any(selectedPassword()!).postalCode) {
+                      <div>{{ $any(selectedPassword()!).postalCode }}</div>
+                    }
+                    <div>{{ $any(selectedPassword()!).country }}</div>
+                  </div>
+                </div>
+              </div>
+            }
+
+            @if (selectedPassword()!.notes) {
+              <div class="bw-detail-section">
+                <div class="bw-detail-label">Notes</div>
+                <div class="bw-detail-value">
+                  <div class="bw-notes">{{ selectedPassword()!.notes }}</div>
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+    }
+  </div>
+</div>
+
+@if (showShareDialog() && passwordToShare() && isLogin(passwordToShare())) {
+  <app-share-dialog
+    [password]="$any(passwordToShare()!)"
+    (closed)="closeShareDialog()"
+  ></app-share-dialog>
+}
+
+@if (showReceiveDialog() && pendingShareRequest()) {
+  <app-receive-dialog
+    [shareRequest]="pendingShareRequest()!"
+    (accepted)="onShareAccepted($event)"
+    (rejected)="onShareRejected()"
+    (closed)="closeReceiveDialog()"
+  ></app-receive-dialog>
+}
+<!-- 2FA Dialog -->
+@if (show2FATab()) {
+  <div class="bw-modal-overlay" (click)="close2FATab()">
+    <div class="bw-modal-content bw-2fa-dialog" (click)="$event.stopPropagation()">
+      <div class="bw-modal-header">
+        <h2><i class="pi pi-stopwatch"></i> Authenticator</h2>
+        <button class="bw-btn-close" (click)="close2FATab()">
+          <i class="pi pi-times"></i>
+        </button>
+      </div>
+
+      <div class="bw-2fa-content">
+        @if (get2FAItems().length === 0) {
+          <div class="bw-empty-state">
+            <i class="pi pi-stopwatch"></i>
+            <p>No 2FA codes found</p>
+            <span>Add TOTP secret to your login items to see codes here</span>
+          </div>
+        } @else {
+          <div class="bw-2fa-list">
+            @for (item of get2FAItems(); track item.id) {
+              <div class="bw-2fa-item" (click)="copyToClipboard(getTotpCode(item.totp!), '2FA Code')">
+                <div class="bw-2fa-header">
+                  <div class="bw-2fa-title">
+                    <i class="pi pi-globe"></i>
+                    <span>{{ item.title }}</span>
+                  </div>
+                  @if (item.username) {
+                    <div class="bw-2fa-username">{{ item.username }}</div>
+                  }
+                </div>
+                <div class="bw-2fa-code-container">
+                  <div class="bw-2fa-code">{{ getTotpCode(item.totp!) }}</div>
+                  <div class="bw-2fa-timer">
+                    <div class="timer-bar" [style.width.%]="getTotpProgress()"></div>
+                  </div>
+                  <div class="bw-2fa-countdown">{{ getTotpRemaining() }}s</div>
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+}

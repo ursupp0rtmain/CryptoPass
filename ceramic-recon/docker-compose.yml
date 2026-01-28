@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  ipfs:
+    image: ipfs/kubo:latest
+    ports:
+      - "5001:5001"
+      - "4001:4001"
+    volumes:
+      - ipfs-data:/data/ipfs
+      - ./ipfs-config.sh:/container-init.d/001-config.sh:ro
+    environment:
+      - IPFS_PROFILE=server
+    command: daemon --enable-pubsub-experiment --migrate=true
+    healthcheck:
+      test: ["CMD-SHELL", "ipfs id || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  
+  ceramic:
+    image: ceramicnetwork/js-ceramic:latest
+    ports:
+      - "7007:7007"
+    depends_on:
+      ipfs:
+        condition: service_healthy
+    volumes:
+      - ./daemon.config.json:/root/.ceramic/daemon.config.json:ro
+    environment:
+      - NODE_ENV=development
+      - CERAMIC_NETWORK=inmemory
+      - DEBUG=ceramic:*
+      - CERAMIC_ENABLE_EXPERIMENTAL_COMPOSE_DB=true
+    command: daemon --config /root/.ceramic/daemon.config.json --port 7007 --hostname 0.0.0.0
+    restart: unless-stopped
+    
+volumes:
+  ipfs-data:
+    driver: local
+  ceramic-data:
+    driver: local

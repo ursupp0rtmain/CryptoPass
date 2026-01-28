@@ -1,0 +1,226 @@
+/* CryptoPass Extension - Content Script Styles */
+
+.cryptopass-field-icon {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.7;
+  transition: opacity 0.15s, background-color 0.15s;
+  z-index: 9999;
+}
+
+.cryptopass-field-icon:hover {
+  opacity: 1;
+  background-color: rgba(23, 93, 220, 0.1);
+}
+
+.cryptopass-field-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Dropdown menu for field */
+.cryptopass-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  min-width: 250px;
+  max-height: 300px;
+  background: #ffffff;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  z-index: 99999;
+  overflow: hidden;
+}
+
+.cryptopass-dropdown-header {
+  padding: 12px 16px;
+  background: #175ddc;
+  color: white;
+  font-size: 13px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cryptopass-dropdown-header svg {
+  width: 16px;
+  height: 16px;
+  fill: white;
+}
+
+.cryptopass-dropdown-list {
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.cryptopass-dropdown-item {
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  border-bottom: 1px solid #f0f0f0;
+  transition: background-color 0.1s;
+}
+
+.cryptopass-dropdown-item:hover {
+  background-color: #f5f5f5;
+}
+
+.cryptopass-dropdown-item:last-child {
+  border-bottom: none;
+}
+
+.cryptopass-dropdown-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
+  background: #f0f0f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.cryptopass-dropdown-icon svg {
+  width: 16px;
+  height: 16px;
+  fill: #666666;
+}
+
+.cryptopass-dropdown-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.cryptopass-dropdown-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: #333333;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cryptopass-dropdown-subtitle {
+  font-size: 12px;
+  color: #888888;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cryptopass-dropdown-empty {
+  padding: 24px 16px;
+  text-align: center;
+  color: #888888;
+  font-size: 13px;
+}
+
+.cryptopass-dropdown-footer {
+  padding: 8px 16px;
+  background: #f5f5f5;
+  border-top: 1px solid #e0e0e0;
+}
+
+.cryptopass-dropdown-footer a {
+  color: #175ddc;
+  text-decoration: none;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.cryptopass-dropdown-footer a:hover {
+  text-decoration: underline;
+}
+
+/* Notification banner */
+.cryptopass-banner {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: #175ddc;
+  color: white;
+  padding: 12px 20px;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  z-index: 99999;
+  animation: cryptopass-slideIn 0.3s ease-out;
+}
+
+@keyframes cryptopass-slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.cryptopass-banner-close {
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+  padding: 4px;
+  opacity: 0.7;
+  transition: opacity 0.15s;
+}
+
+.cryptopass-banner-close:hover {
+  opacity: 1;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .cryptopass-dropdown {
+    background: #242424;
+    border-color: #333333;
+  }
+
+  .cryptopass-dropdown-item {
+    border-bottom-color: #333333;
+  }
+
+  .cryptopass-dropdown-item:hover {
+    background-color: #2a2a2a;
+  }
+
+  .cryptopass-dropdown-icon {
+    background: #333333;
+  }
+
+  .cryptopass-dropdown-icon svg {
+    fill: #888888;
+  }
+
+  .cryptopass-dropdown-title {
+    color: #e0e0e0;
+  }
+
+  .cryptopass-dropdown-footer {
+    background: #1a1a1a;
+    border-top-color: #333333;
+  }
+}

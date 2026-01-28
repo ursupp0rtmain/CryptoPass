@@ -1,0 +1,30 @@
+# Node
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Build output
+dist/
+tmp/
+out-tsc/
+
+# IDEs
+.idea/
+.vscode/
+*.sublime-workspace
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Environment files with actual secrets
+.env
+.env.local
+.env.*.local
+
+# Ceramic local data (regenerated)
+ceramic-recon/ipfs-data/
+ceramic-recon/ceramic-data/
+
+# Angular cache
+.angular/
