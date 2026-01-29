@@ -25,7 +25,7 @@ services:
       - cryptopass-network
 
   frontend:
-    image: ghcr.io/ur_supp0rter_main/cryptopass-frontend:latest
+    image: ghcr.io/ursupp0rtmain/cryptopass-frontend:latest
     container_name: cryptopass-frontend
     restart: unless-stopped
     expose:
