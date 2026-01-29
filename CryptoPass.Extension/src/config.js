@@ -3,10 +3,10 @@
 
 const CONFIG = {
   // Your Ceramic node URL
-  CERAMIC_URL: 'https://ceramic.yourdomain.com',
+  CERAMIC_URL: 'https://ceramic.ursupportmain.com',
 
   // Your frontend URL (for sync)
-  FRONTEND_URL: 'https://app.yourdomain.com',
+  FRONTEND_URL: 'https://passs.ursupportmain.com',
 
   // Version
   VERSION: '1.0.0'
