@@ -5,7 +5,7 @@
 FROM nginx:alpine
 
 COPY nginx.conf /etc/nginx/conf.d/default.conf
-COPY dist/crypto-pass.user-app/browser /usr/share/nginx/html
+COPY dist/CryptoPass.UserApp/browser /usr/share/nginx/html
 
 EXPOSE 80
 
