@@ -32,7 +32,7 @@ services:
       - "4200:4200"
     environment:
       - CERAMIC_NODE_URL=${CERAMIC_NODE_URL:-http://host.docker.internal:7007}
-    command: sh -c "npm install && node set-env.ts && npm start -- --host 0.0.0.0"
+    command: sh -c "npm install && node set-env.js && npm start -- --host 0.0.0.0"
     profiles:
       - dev
     networks:

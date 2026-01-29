@@ -23,7 +23,7 @@ ENV CERAMIC_NODE_URL_PROD=$CERAMIC_NODE_URL
 ENV ENABLE_PAYMENTS=$ENABLE_PAYMENTS
 
 # Generate environment files and build
-RUN node set-env.ts && npm run build
+RUN node set-env.js && npm run build
 
 # Stage 2: Production with nginx
 FROM nginx:alpine AS production

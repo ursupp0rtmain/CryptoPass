@@ -16,7 +16,7 @@ echo ""
 echo "[1/4] Building frontend..."
 cd "$FRONTEND_DIR"
 export CERAMIC_NODE_URL="https://ceramic.yourdomain.com"
-node set-env.ts
+node set-env.js
 npm run build
 cd -
 
