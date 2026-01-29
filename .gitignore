@@ -16,6 +16,8 @@ out-tsc/
 # System files
 .DS_Store
 Thumbs.db
+NUL
+**/NUL
 
 # Environment files with actual secrets
 .env
