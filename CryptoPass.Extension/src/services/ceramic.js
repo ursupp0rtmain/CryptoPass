@@ -3,8 +3,7 @@
 
 class CeramicService {
   constructor() {
-    // Ceramic testnet node
-    this.ceramicUrl = 'https://ceramic-clay.3boxlabs.com';
+    this.ceramicUrl = window.CONFIG?.CERAMIC_URL || 'http://localhost:7007';
     this.session = null;
     this.did = null;
   }
