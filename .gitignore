@@ -32,3 +32,6 @@ ceramic-recon/ceramic-data/
 .angular/
 *.pem
 *.key
+
+# Added by ggshield
+.cache_ggshield
