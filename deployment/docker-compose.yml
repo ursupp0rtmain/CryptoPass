@@ -73,7 +73,7 @@ services:
       - cryptopass-network
 
   ceramic:
-    image: ceramicnetwork/js-ceramic:6
+    image: ceramicnetwork/js-ceramic:latest
     container_name: cryptopass-ceramic
     restart: unless-stopped
     depends_on:
