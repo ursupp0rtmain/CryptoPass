@@ -30,3 +30,5 @@ ceramic-recon/ceramic-data/
 
 # Angular cache
 .angular/
+*.pem
+*.key
