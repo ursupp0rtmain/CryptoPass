@@ -1,0 +1,46 @@
+services:
+  # CryptoPass Frontend (Angular)
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        # Ceramic Node URL - für Production anpassen
+        CERAMIC_NODE_URL: ${CERAMIC_NODE_URL:-http://ceramic:7007}
+        ENABLE_PAYMENTS: ${ENABLE_PAYMENTS:-false}
+    ports:
+      - "4200:80"
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+    networks:
+      - cryptopass-network
+
+  # Development mode mit Hot Reload
+  frontend-dev:
+    image: node:22-alpine
+    working_dir: /app
+    volumes:
+      - .:/app
+      - node_modules:/app/node_modules
+    ports:
+      - "4200:4200"
+    environment:
+      - CERAMIC_NODE_URL=${CERAMIC_NODE_URL:-http://host.docker.internal:7007}
+    command: sh -c "npm install && node set-env.ts && npm start -- --host 0.0.0.0"
+    profiles:
+      - dev
+    networks:
+      - cryptopass-network
+
+networks:
+  cryptopass-network:
+    driver: bridge
+
+volumes:
+  node_modules:

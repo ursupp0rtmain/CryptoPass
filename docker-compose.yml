@@ -1,0 +1,113 @@
+# CryptoPass - Full Stack Docker Compose
+# Startet Ceramic, IPFS und Frontend zusammen
+#
+# Verwendung:
+#   Production:  docker-compose up -d
+#   Development: docker-compose --profile dev up -d
+#   Nur Backend: docker-compose up -d ipfs ceramic
+
+services:
+  # ===========================================
+  # Backend Services (Ceramic Network)
+  # ===========================================
+
+  ipfs:
+    image: ipfs/kubo:latest
+    ports:
+      - "5001:5001"
+      - "4001:4001"
+    volumes:
+      - ipfs-data:/data/ipfs
+      - ./ceramic-recon/ipfs-config.sh:/container-init.d/001-config.sh:ro
+    environment:
+      - IPFS_PROFILE=server
+    command: daemon --enable-pubsub-experiment --migrate=true
+    healthcheck:
+      test: ["CMD-SHELL", "ipfs id || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - cryptopass-network
+
+  ceramic:
+    image: ceramicnetwork/js-ceramic:latest
+    ports:
+      - "7007:7007"
+    depends_on:
+      ipfs:
+        condition: service_healthy
+    volumes:
+      - ./ceramic-recon/daemon.config.json:/root/.ceramic/daemon.config.json:ro
+      - ceramic-data:/root/.ceramic
+    environment:
+      - NODE_ENV=development
+      - CERAMIC_NETWORK=inmemory
+      - CERAMIC_ENABLE_EXPERIMENTAL_COMPOSE_DB=true
+    command: daemon --config /root/.ceramic/daemon.config.json --port 7007 --hostname 0.0.0.0
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7007/api/v0/node/healthcheck"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+    networks:
+      - cryptopass-network
+
+  # ===========================================
+  # Frontend (Angular)
+  # ===========================================
+
+  frontend:
+    build:
+      context: ./CryptoPass.UserApp
+      dockerfile: Dockerfile
+      args:
+        CERAMIC_NODE_URL: http://ceramic:7007
+        ENABLE_PAYMENTS: ${ENABLE_PAYMENTS:-false}
+    ports:
+      - "4200:80"
+    depends_on:
+      ceramic:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+    networks:
+      - cryptopass-network
+
+  # ===========================================
+  # Development Mode (mit Hot Reload)
+  # ===========================================
+
+  frontend-dev:
+    image: node:22-alpine
+    working_dir: /app
+    volumes:
+      - ./CryptoPass.UserApp:/app
+      - frontend-node-modules:/app/node_modules
+    ports:
+      - "4200:4200"
+    environment:
+      - CERAMIC_NODE_URL=http://ceramic:7007
+    command: sh -c "npm install && node set-env.ts && npm start -- --host 0.0.0.0"
+    depends_on:
+      ceramic:
+        condition: service_healthy
+    profiles:
+      - dev
+    networks:
+      - cryptopass-network
+
+networks:
+  cryptopass-network:
+    driver: bridge
+
+volumes:
+  ipfs-data:
+  ceramic-data:
+  frontend-node-modules:

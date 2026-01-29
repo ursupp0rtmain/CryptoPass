@@ -1043,13 +1043,23 @@ class CryptoPassPopup {
     if (!this.selectedItem) return;
 
     if (confirm('Are you sure you want to delete this item?')) {
-      this.vault = this.vault.filter(v => v.id !== this.selectedItem.id);
-      await chrome.storage.local.set({ vault: this.vault });
-      await this.syncVault();
+      const deletedId = this.selectedItem.id;
 
+      // Optimistic update: Remove from UI immediately
+      this.vault = this.vault.filter(v => v.id !== deletedId);
+      this.selectedItem = null;
       this.renderVaultItems();
       this.renderCurrentTabItems();
       this.showView('vault');
+
+      // Save and sync in background
+      try {
+        await chrome.storage.local.set({ vault: this.vault });
+        await this.syncVault();
+      } catch (error) {
+        console.error('Error syncing after delete:', error);
+        // Could reload vault on error, but UI is already updated
+      }
     }
   }
 

@@ -245,12 +245,23 @@ export class VaultComponent implements OnInit, OnDestroy {
   async deletePassword(id: string): Promise<void> {
     if (confirm('Are you sure you want to delete this password?')) {
       try {
+        // Optimistic update: Remove from local state immediately
+        this.passwords.update((passwords) => passwords.filter((p) => p.id !== id));
+
+        // Clear selection if deleted item was selected
+        if (this.selectedPasswordId() === id) {
+          this.clearSelection();
+        }
+
         // Delete from Ceramic
         await this.storageService.deleteEntry(id);
-        // Reload vault from Ceramic to update local state
-        await this.loadVault();
+
+        // Sync to browser extension
+        this.syncToExtension();
       } catch (error: any) {
         console.error('Error deleting password:', error);
+        // Reload vault to restore state on error
+        await this.loadVault();
         this.notificationService.addNotification({
           type: 'system',
           title: 'Fehler',

@@ -1,0 +1,9 @@
+# Secrets - NIEMALS committen!
+.env
+.env.local
+.env.production
+*.key
+*.pem
+
+# Generierte Dateien
+.last-deployment-cid

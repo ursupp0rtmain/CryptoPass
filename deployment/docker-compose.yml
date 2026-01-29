@@ -1,0 +1,102 @@
+# CryptoPass Production Stack
+# Deploy: docker compose up -d
+# NPM UI: http://SERVER_IP:81 (admin@example.com / changeme)
+
+services:
+  npm:
+    image: jc21/nginx-proxy-manager:latest
+    container_name: cryptopass-npm
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "81:81"
+    volumes:
+      - npm-data:/data
+      - npm-letsencrypt:/etc/letsencrypt
+    environment:
+      - DISABLE_IPV6=true
+    healthcheck:
+      test: ["CMD", "/bin/check-health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - cryptopass-network
+
+  ipfs:
+    image: ipfs/kubo:v0.27.0
+    container_name: cryptopass-ipfs
+    restart: unless-stopped
+    volumes:
+      - ipfs-data:/data/ipfs
+      - ipfs-staging:/export
+      - ./ipfs/ipfs-config.sh:/container-init.d/001-config.sh:ro
+    environment:
+      - IPFS_PROFILE=server,lowpower
+      - IPFS_PATH=/data/ipfs
+      - IPFS_STORAGE_MAX=${IPFS_STORAGE_MAX:-50GB}
+    ports:
+      - "4001:4001"
+      - "4001:4001/udp"
+    expose:
+      - "5001"
+      - "8080"
+    command: daemon --enable-pubsub-experiment --enable-namesys-pubsub --migrate=true
+    healthcheck:
+      test: ["CMD-SHELL", "ipfs id || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 256M
+    networks:
+      - cryptopass-network
+
+  ceramic:
+    image: ceramicnetwork/js-ceramic:6
+    container_name: cryptopass-ceramic
+    restart: unless-stopped
+    depends_on:
+      ipfs:
+        condition: service_healthy
+    volumes:
+      - ceramic-data:/root/.ceramic
+      - ./ceramic/daemon.config.json:/root/.ceramic/daemon.config.json:ro
+    environment:
+      - NODE_ENV=production
+      - CERAMIC_NETWORK=${CERAMIC_NETWORK:-mainnet}
+      - CERAMIC_ENABLE_EXPERIMENTAL_COMPOSE_DB=true
+      - NODE_OPTIONS=--max-old-space-size=2048
+    expose:
+      - "7007"
+    command: daemon --config /root/.ceramic/daemon.config.json --port 7007 --hostname 0.0.0.0
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:7007/api/v0/node/healthcheck"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 512M
+    networks:
+      - cryptopass-network
+
+networks:
+  cryptopass-network:
+
+volumes:
+  npm-data:
+  npm-letsencrypt:
+  ipfs-data:
+  ipfs-staging:
+  ceramic-data:
