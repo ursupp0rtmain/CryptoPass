@@ -1,9 +1,8 @@
 # CryptoPass Frontend
-FROM node:22-alpine AS builder
+FROM node:22 AS builder
 
 WORKDIR /app
 
-# Increase Node memory for Angular build
 ENV NODE_OPTIONS="--max-old-space-size=4096"
 
 COPY package*.json ./
@@ -18,8 +17,7 @@ ENV CERAMIC_NODE_URL=$CERAMIC_NODE_URL
 ENV CERAMIC_NODE_URL_PROD=$CERAMIC_NODE_URL
 ENV ENABLE_PAYMENTS=$ENABLE_PAYMENTS
 
-# Build using local Angular CLI
-RUN node set-env.js && ./node_modules/.bin/ng build --configuration=production
+RUN node set-env.js && npm run build
 
 # Production
 FROM nginx:alpine
