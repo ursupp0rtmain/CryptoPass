@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(podman compose:*)"
+      "Bash(podman compose:*)",
+      "Bash(node --loader ts-node/esm:*)",
+      "Bash(node -e:*)"
     ]
   }
 }

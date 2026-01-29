@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   ipfs:
     image: ipfs/kubo:latest
@@ -17,7 +15,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-  
+
+  # JS-Ceramic mit ComposeDB Support
   ceramic:
     image: ceramicnetwork/js-ceramic:latest
     ports:
@@ -27,16 +26,38 @@ services:
         condition: service_healthy
     volumes:
       - ./daemon.config.json:/root/.ceramic/daemon.config.json:ro
+      - ceramic-data:/root/.ceramic
     environment:
       - NODE_ENV=development
       - CERAMIC_NETWORK=inmemory
-      - DEBUG=ceramic:*
       - CERAMIC_ENABLE_EXPERIMENTAL_COMPOSE_DB=true
     command: daemon --config /root/.ceramic/daemon.config.json --port 7007 --hostname 0.0.0.0
     restart: unless-stopped
-    
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7007/api/v0/node/healthcheck"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+
+  # Ceramic One (Rust) - Optionale alternative Implementation
+  # Hinweis: Ceramic-one hat keine eingebaute GraphQL/ComposeDB API
+  # ceramic-one:
+  #   image: public.ecr.aws/r5b3e0r5/3box/ceramic-one:latest
+  #   ports:
+  #     - "7007:5101"
+  #     - "4101:4101"
+  #   volumes:
+  #     - ceramic-one-data:/root/.ceramic-one
+  #   environment:
+  #     - RUST_LOG=info
+  #   command: ["--network", "local", "--local-network-id", "0", "--bind-address", "0.0.0.0:5101", "--cors-allow-origins", "*"]
+  #   restart: unless-stopped
+
 volumes:
   ipfs-data:
+    driver: local
+  ceramic-one-data:
     driver: local
   ceramic-data:
     driver: local

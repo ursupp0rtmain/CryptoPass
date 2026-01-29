@@ -1,5 +1,6 @@
 // Auto-generated ComposeDB runtime definition
 // DO NOT EDIT MANUALLY
+// Generated on 2026-01-29T06:43:35.769Z
 
 import type { RuntimeCompositeDefinition } from '@composedb/types';
 
@@ -8,7 +9,7 @@ export const definition: RuntimeCompositeDefinition = {
     "VaultEntry": {
       "interface": false,
       "implements": [],
-      "id": "kjzl6hvfrbw6c63pep4xrwav7qdtn47pl4xok9ku5zgqrb246diugooamv4sh9l",
+      "id": "kjzl6hvfrbw6c9y6ghjqmz057oyi7zy2npym9evuewi98l7e1cx6lhurhjxugsf",
       "accountRelation": {
         "type": "list"
       }
@@ -16,7 +17,7 @@ export const definition: RuntimeCompositeDefinition = {
     "VaultEntryIndex": {
       "interface": false,
       "implements": [],
-      "id": "kjzl6hvfrbw6c8enp35sbvuijmbud3rs0qmld71q4rk6lq95yjxy4e7y5zgpchz",
+      "id": "kjzl6hvfrbw6c8zc70gkb88u94463dj4ybskw6ke19jb09m3woku4fx10whvq18",
       "accountRelation": {
         "type": "list"
       }
