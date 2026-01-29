@@ -18,9 +18,8 @@ ENV CERAMIC_NODE_URL=$CERAMIC_NODE_URL
 ENV CERAMIC_NODE_URL_PROD=$CERAMIC_NODE_URL
 ENV ENABLE_PAYMENTS=$ENABLE_PAYMENTS
 
-# Generate env files and build (separate steps for better error visibility)
-RUN node set-env.js
-RUN npx ng build --configuration=production
+# Build using local Angular CLI
+RUN node set-env.js && ./node_modules/.bin/ng build --configuration=production
 
 # Production
 FROM nginx:alpine
